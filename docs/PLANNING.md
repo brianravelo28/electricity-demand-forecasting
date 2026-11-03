@@ -27,13 +27,16 @@ The universe is the largest BAs by average demand with complete series, selected
 | Source | Role | Known limits |
 | --- | --- | --- |
 | EIA API v2, `electricity/rto/region-data` | Hourly demand (`D`), day-ahead forecast (`DF`), net generation, interchange | Free key; 5,000 rows per page; rate limits unpublished (key can be suspended); history starts 2019-01-01 |
-| NOAA NCEI (hourly surface observations) | Temperature, humidity, wind per BA | Public domain under the NCEI open data policy; access route and token still to confirm |
+| NOAA Integrated Surface Database (public S3 bucket `noaa-global-hourly-pds`) | Temperature, dew point and wind speed from airport stations | Public domain under the NCEI open data policy; no token. The archive has no observations after 2025-08-27 (checked in the bucket and in NCEI's data service on Nov 3, 2026) |
+| Iowa Environmental Mesonet airport observations | Same station observations after 2025-08-27 | Site says its materials are public domain and free for any lawful purpose, credit appreciated. Over 11.5 months at 41 of the 42 stations (it has no Palm Beach), it matches ISD within 0.03 °C on average for temperature and dew point and within 0.03 m/s for wind |
 | US federal holiday calendar | Holiday flags | Built from a published rule, no source data needed |
 
 - **Respondents:** the route has 83: 69 BAs and 14 regional aggregates (13 regions plus the Lower 48 total). Twelve BAs are generation-only and have no demand series, leaving 57 BAs with demand. An aggregate is never included alongside its member BAs.
 - **Time zones:** among the 57, 20 are Eastern, 17 Pacific, 8 Central, 7 Arizona and 5 Mountain. Arizona does not observe daylight saving, so it maps to `America/Phoenix`, not Mountain. The source is EIA's reference table. Spot-check it, since some assignments look odd (WACM, the Rocky Mountain region, is listed under Arizona). EIA also notes that MISO and LGEE report on Eastern Standard Time all year, so the reporting zone is not always the clock that demand follows. Calendar features need each BA's civil time zone, set by hand for BAs such as MISO that span two zones.
 - **Selection rule (draft):** using 2019 to 2020 data only, keep BAs with `D` present for the whole period and at most 2% of hours missing or null, and rank by mean demand. Start with about 20, then widen. 51 of the 57 have demand from 2019 and were still active in April 2026. BAs that retire after 2020 (so far AEC, NSB, WACM and WAUW) stay in until they stop reporting, so the panel is unbalanced. BAs that start after 2020 are out. Gaps in later years are flagged, not used for selection.
 - **Selection result** (`scripts/completeness.py`, 17,544 hours in 2019 to 2020): 49 of the 57 BAs pass. The 8 that fail are PSEI (53% of hours missing), SEC (39% of values zero or negative), TAL, GVL and DOPD (4% to 8% missing or null), and NSB, BHBA and SWPW (no data from 2019-01-01). The starting universe is the 20 largest passing BAs by mean demand: PJM, MISO, ERCO, SWPP, SOCO, CISO, TVA, NYIS, FPL, ISNE, DUK, CPLE, BPAT, FPC, PSCO, PACE, NEVP, LGEE, SRP and AZPS (down to about 3,450 MW). Each has under 1% of hours missing or null.
+- **Weather stations (draft):** each of the 20 BAs maps to one to four airports in its load centers (42 stations in `scripts/weather_stations.py`; Phoenix serves SRP and AZPS), equal weighted. FPL uses Miami and Fort Lauderdale, because Palm Beach is not in the Mesonet archive. From 2019-01-01 to 2026-11-03, each station has a good temperature in at least 99.3% of hours, and every BA has one in at least 99.4% of hours from at least one of its stations. NOAA observations flagged suspect or erroneous are dropped. The airport choices are a judgement call to review.
+- **Weather gap:** the ISD archive stops at 2025-08-27, about 14 months before the demand data ends. `scripts/ingest_iem.py` takes the same stations from the Iowa Mesonet from 2025-08-26 on (`data/raw/weather/obs_iem/`). Mesonet has no quality flags, so readings that are physically impossible are set to missing, and none were found. Of 344,418 matched temperatures in the overlap year, 119 differ from ISD by more than 0.5 °C and 9 by more than 2 °C, and these are not filtered. After the switch, every BA has a good temperature in at least 99.6% of hours from at least one station. The sources overlap on 2025-08-26 and 08-27, where the hourly builder uses ISD.
 - **Gaps:** in 2023, ERCOT was complete, CAISO had 2 null values, and PJM had 1 missing hour and 24 nulls. Keep raw values untouched in storage and add flags. Decide gap handling (interpolate short gaps, drop long ones) from training data only.
 - **Ingestion is separate from analysis:** one script downloads raw data to parquet and everything else reads only from those files. The public dashboard also reads saved files and never calls the API.
 
@@ -79,7 +82,7 @@ Under the EIA API terms, the dashboard may display the data but may not claim EI
 - **Everything computed here** (cleaned series, forecasts, error metrics, SHAP values) is labeled "computed by the author from EIA data".
 - **No EIA logo** and no wording that implies EIA endorsement.
 - **Third-party material** on EIA's site (such as photos) is not used.
-- **NOAA weather** is credited to NOAA/NCEI.
+- **NOAA weather** is credited to NOAA/NCEI, and to the Iowa Environmental Mesonet for any dates taken from it.
 
 ## Known limitations for the README
 
@@ -99,7 +102,9 @@ These limits go in the README as stated facts, because naming them is part of wh
 - [ ] Map EIA's five time-zone names to IANA zones and spot-check odd assignments
 - [x] Write the BA selection rule and run the completeness table (49 pass, 20 selected)
 - [ ] Download the day-ahead forecast (`DF`) for the same BAs with `python scripts/ingest.py --types DF`
-- [ ] Confirm the NOAA/NCEI hourly access route and token, and map stations to BAs
+- [x] Confirm the NOAA hourly access route and map stations to BAs (S3 bucket, no token; 42 stations downloaded for 2019 to 2025-08-27)
+- [x] Extend weather past 2025-08-27 with the Iowa Mesonet (done; 42 stations to 2026-11-03)
+- [ ] Build the hourly weather series (one temperature per hour per BA), preferring ISD on the overlap days
 - [ ] Check when EIA's day-ahead forecast is published, per BA
 - [ ] Write pseudocode for target and feature construction
 - [ ] Settle the forecast origin (10:00 local is the draft)
