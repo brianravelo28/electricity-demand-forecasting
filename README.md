@@ -13,3 +13,12 @@ py -3.14 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python scripts\test_eia.py
 ```
+
+## Tests
+
+```
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+.venv\Scripts\python -m pytest
+```
+
+The tests run on synthetic series and need no downloaded data.

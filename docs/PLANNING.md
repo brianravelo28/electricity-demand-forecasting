@@ -42,11 +42,12 @@ The universe is the largest BAs by average demand with complete series, selected
 
 ## Models and features
 
-Four models are compared, so that any gain from machine learning is measured against structure the load-forecasting literature already uses.
+Five models are compared, so that any gain from machine learning is measured against structure the load-forecasting literature already uses.
 
 | Model | Inputs | Purpose |
 | --- | --- | --- |
 | Seasonal-naive | Demand at the same hour one week earlier | Floor that any model must beat |
+| Previous-day naive | Demand at the same hour one day earlier when known by the origin, otherwise two days earlier | A second floor. In 2023 it beats seasonal-naive for ERCOT (6.1% against 8.1%), PJM (6.6% against 7.3%) and NYISO (6.6% against 7.5%) but not CAISO (7.0% against 6.6%), so neither dominates |
 | Same-day-type average | Mean of the same hour over the previous 4 same weekdays | Smoother naive |
 | Regression | Hour-of-week effects, holiday flags, temperature terms (heating and cooling degrees) | The simple structured benchmark, analogous to a HAR model |
 | LightGBM | Demand lags known at the origin, rolling means, calendar, holidays, weather | Tests whether extra flexibility adds accuracy; SHAP shows what drives it |
@@ -91,6 +92,7 @@ for each ba, for each local date d (the origin date):
 
 baselines:
     seasonal_naive      = demand[T - 168h]
+    previous_day_naive  = lag_day
     same_day_type_avg   = mean of demand[T - 168h*w], w = 1..4
     regression          = hour-of-week effects + holiday flags + heating and cooling degrees
                           (24-hour mean temperature in variant A, the target day's in variant B)
@@ -106,7 +108,7 @@ modeling rules:
       because a row's targets run to local midnight of d+2.
 ```
 
-Checks to write with the code: build the features on a synthetic series whose value is its own timestamp, then assert that no demand input is later than Ld, no variant A weather input is later than Wd, no training target is later than the first test origin, and the 23- and 25-hour days produce 23 and 25 targets.
+The code is `electricity/features.py` and its checks are in `tests/test_features.py` (run `python -m pytest`). They build the features on a synthetic series whose value is its own timestamp and assert that no demand input is later than Ld, no variant A weather input is later than Wd, no training target is later than the first test origin, and the 23- and 25-hour days produce 23 and 25 targets. A further test changes every value after Ld and Wd and confirms that the features for that origin date do not move.
 
 ## Validation and leakage checklist
 
