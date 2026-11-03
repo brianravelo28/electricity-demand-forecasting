@@ -56,7 +56,7 @@ def fetch(url, tries=4):
     for i in range(tries):
         try:
             resp = requests.get(url, timeout=120)
-        except (requests.ConnectionError, requests.Timeout):
+        except requests.RequestException:
             if i == tries - 1:
                 raise
             time.sleep(10 * 2 ** i)

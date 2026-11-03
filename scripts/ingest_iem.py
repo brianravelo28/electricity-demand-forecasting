@@ -1,7 +1,7 @@
 """Download recent airport observations from the Iowa Environmental Mesonet (IEM).
 
 NOAA's ISD archive has no observations after 2025-08-27, so this fills the period from
-2025-08-26 to today for the same stations. Output matches ingest_weather.py (temp_c,
+2025-08-20 to today for the same stations (the weather builder uses ISD wherever it has data). Output matches ingest_weather.py (temp_c,
 dew_c, wind_ms) in data/raw/weather/obs_iem/, one parquet file per station.
 
 IEM carries no quality flags. Readings that are physically impossible are set to missing:
@@ -21,7 +21,7 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "raw" / "weather" / "obs_iem"
 URL = "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py"
-START = date(2025, 8, 26)  # a few days before ISD ends, to overlap
+START = date(2025, 8, 20)  # before the earliest station's last ISD observation (2025-08-25), so none is left with a gap
 KNOT = 0.514444  # metres per second
 PAUSE = 0.5
 
@@ -56,7 +56,7 @@ def fetch(code, end, tries=4):
     for i in range(tries):
         try:
             resp = requests.get(URL, params=params, timeout=180)
-        except (requests.ConnectionError, requests.Timeout):
+        except requests.RequestException:
             if i == tries - 1:
                 raise
             time.sleep(10 * 2 ** i)
