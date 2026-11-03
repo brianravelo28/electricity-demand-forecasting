@@ -17,7 +17,7 @@ The target is hourly demand (megawatthours, EIA series type `D`) for each of the
 
 - **Forecast origin:** 10:00 in each BA's primary local time zone. Targets are 14 to 37 hours ahead. This mirrors a day-ahead schedule and is close to EIA's own day-ahead forecast, which it publishes by 11:00 ET. Confirm the origin before building features.
 - **Clock:** the API's `hourly` series is on UTC (checked: ERCOT peaks at 23:00 on 2023-07-18, which is 6 pm Central, and the daylight-saving weekend returns exactly 72 hours). Calendar features (hour, weekday, holidays) use each BA's local time, not UTC.
-- **Period stamp:** confirm whether a stamp marks the start or the end of its hour before computing any lag. An off-by-one is a leak.
+- **Period stamp:** each stamp marks the hour that ends at that time (hour-ending). Hourly totals built that way match EIA's daily totals on all 28 days checked for ERCOT, PJM and CAISO. Reading the stamps as hour-beginning does not match.
 - **Error metrics:** MAPE and RMSE in MW per BA, RMSE divided by mean demand to compare across BAs, MAE at each day's peak hour, and bias.
 
 ## Universe and data
@@ -30,8 +30,9 @@ The universe is the largest BAs by average demand with complete series, selected
 | NOAA NCEI (hourly surface observations) | Temperature, humidity, wind per BA | Public domain under the NCEI open data policy; access route and token still to confirm |
 | US federal holiday calendar | Holiday flags | Built from a published rule, no source data needed |
 
-- **Respondents:** the route has 83 respondents. It likely mixes individual BAs with regional aggregates and generation-only entries. Separate them using EIA metadata, and never include an aggregate alongside its member BAs.
-- **Selection rule (draft):** using 2019 to 2020 data only, keep BAs with `D` present and at most 2% of hours missing or null, and rank by mean demand. Start with about 20, then widen. Gaps in later years are flagged, not used for selection.
+- **Respondents:** the route has 83: 69 BAs and 14 regional aggregates (13 regions plus the Lower 48 total). Twelve BAs are generation-only and have no demand series, leaving 57 BAs with demand. An aggregate is never included alongside its member BAs.
+- **Time zones:** among the 57, 20 are Eastern, 17 Pacific, 8 Central, 7 Arizona and 5 Mountain. Arizona does not observe daylight saving, so it maps to `America/Phoenix`, not Mountain. The source is EIA's reference table. Spot-check it, since some assignments look odd (WACM, the Rocky Mountain region, is listed under Arizona).
+- **Selection rule (draft):** using 2019 to 2020 data only, keep BAs with `D` present for the whole period and at most 2% of hours missing or null, and rank by mean demand. Start with about 20, then widen. 51 of the 57 have demand from 2019 and were still active in April 2026. BAs that retire after 2020 (so far AEC, NSB, WACM and WAUW) stay in until they stop reporting, so the panel is unbalanced. BAs that start after 2020 are out. Gaps in later years are flagged, not used for selection.
 - **Gaps:** in 2023, ERCOT was complete, CAISO had 2 null values, and PJM had 1 missing hour and 24 nulls. Keep raw values untouched in storage and add flags. Decide gap handling (interpolate short gaps, drop long ones) from training data only.
 - **Ingestion is separate from analysis:** one script downloads raw data to parquet and everything else reads only from those files. The public dashboard also reads saved files and never calls the API.
 
@@ -59,8 +60,8 @@ Validation is walk-forward with an expanding training window. The first training
 
 Leakage checklist:
 
-1. Every feature uses data available at the origin (10:00 local on day t). Demand is published about an hour after each hour, so use demand only through 08:00 local to stay conservative.
-2. The period-stamp meaning (start or end of hour) is confirmed and every lag is shifted accordingly.
+1. Every feature uses data available at the origin (10:00 local on day t). Demand is published about an hour after each hour, so use demand only through the stamp at 08:00 local (the hour ending 08:00) to stay conservative.
+2. Stamps are hour-ending, so a stamp at time T covers T minus 1 hour to T. Lags and the target day's 24 hours are built on that basis.
 3. Calendar features come from local time. UTC hour-of-day is never a feature.
 4. Weather in variant A stops at the origin. Variant B is labeled and kept separate.
 5. EIA's day-ahead forecast is a benchmark only.
@@ -92,8 +93,9 @@ These limits go in the README as stated facts, because naming them is part of wh
 
 ## Work-checkpoint tasks
 
-- [ ] Confirm whether a period stamp marks the start or end of its hour
-- [ ] Pull respondent metadata: which are BAs, aggregates or generation-only, and each BA's time zone
+- [x] Confirm whether a period stamp marks the start or end of its hour (end)
+- [x] Pull respondent metadata: which are BAs, aggregates or generation-only, and each BA's time zone
+- [ ] Map EIA's five time-zone names to IANA zones and spot-check odd assignments
 - [ ] Write the BA selection rule and run the completeness table
 - [ ] Confirm the NOAA/NCEI hourly access route and token, and map stations to BAs
 - [ ] Check when EIA's day-ahead forecast is published, per BA
