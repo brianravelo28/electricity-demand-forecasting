@@ -37,7 +37,7 @@ The universe is the largest BAs by average demand with complete series, selected
 - **Selection result** (`scripts/completeness.py`, 17,544 hours in 2019 to 2020): 49 of the 57 BAs pass. The 8 that fail are PSEI (53% of hours missing), SEC (39% of values zero or negative), TAL, GVL and DOPD (4% to 8% missing or null), and NSB, BHBA and SWPW (no data from 2019-01-01). The starting universe is the 20 largest passing BAs by mean demand: PJM, MISO, ERCO, SWPP, SOCO, CISO, TVA, NYIS, FPL, ISNE, DUK, CPLE, BPAT, FPC, PSCO, PACE, NEVP, LGEE, SRP and AZPS (down to about 3,450 MW). Each has under 1% of hours missing or null.
 - **Weather stations (draft):** each of the 20 BAs maps to one to four airports in its load centers (42 stations in `scripts/weather_stations.py`; Phoenix serves SRP and AZPS), equal weighted. FPL uses Miami and Fort Lauderdale, because Palm Beach is not in the Mesonet archive. From 2019-01-01 to 2026-11-03, each station has a good temperature in at least 99.3% of hours, and every BA has one in at least 99.4% of hours from at least one of its stations. NOAA observations flagged suspect or erroneous are dropped. The airport choices are a judgement call to review.
 - **Weather gap:** the ISD archive stops at 2025-08-27, about 14 months before the demand data ends. `scripts/ingest_iem.py` takes the same stations from the Iowa Mesonet from 2025-08-20 on (`data/raw/weather/obs_iem/`), early enough to cover the station whose ISD data ends first (2025-08-25). Mesonet has no quality flags, so readings that are physically impossible are set to missing, and none were found. Of 344,418 matched temperatures in the overlap year, 119 differ from ISD by more than 0.5 °C and 9 by more than 2 °C, and these are not filtered. After the switch, every BA has a good temperature in at least 99.6% of hours from at least one station. The hourly builder (`scripts/weather_hourly.py`) uses ISD wherever a station has it and Mesonet after that.
-- **Gaps:** in 2023, ERCOT was complete, CAISO had 2 null values, and PJM had 1 missing hour and 24 nulls. Keep raw values untouched in storage and add flags. Decide gap handling (interpolate short gaps, drop long ones) from training data only.
+- **Gaps:** in 2023, ERCOT was complete, CAISO had 2 null values, and PJM had 1 missing hour and 24 nulls. Keep raw values untouched in storage and add flags. Features are never interpolated, because filling a gap uses values after the origin. Gaps stay missing, and target rows with a missing value are dropped.
 - **Ingestion is separate from analysis:** one script downloads raw data to parquet and everything else reads only from those files. The public dashboard also reads saved files and never calls the API.
 
 ## Models and features
@@ -54,6 +54,60 @@ Four models are compared, so that any gain from machine learning is measured aga
 - **EIA day-ahead forecast (`DF`):** a benchmark, not an input, because it is published by 11:00 ET, after the 10:00 origin. For 8 BAs EIA says its forecast is not meaningfully comparable to actual demand, so exclude those from this comparison. Checked on 2023 for the 20 selected BAs: the forecast is rarely missing (SRP 4.2%, FPL 0.6%) and almost never equals actual demand (under 0.4% of hours), so it was not overwritten with actuals. Its mean absolute percentage error is 2.0% to 5.6% for 16 BAs, against 5.8% to 13.5% for the seasonal-naive baseline. FPC (22.6%, biased low by 22.6%), PSCO (16.5%, biased high by 10.0%) and LGEE (8.0%, biased low by 7.6%) are far off their peers and are excluded from the benchmark comparison.
 - **Weather, two variants:** (A) weather observed up to the origin only; (B) observed weather for the target day, labeled as a perfect-forecast upper bound, since a live system would use weather forecasts. Report both, never mixed.
 
+## Target and feature construction (pseudocode)
+
+All series are indexed by the UTC hour-ending stamp T, which covers the hour from T minus 1 hour to T, as in the EIA data. One row is one BA, one origin date d and one target hour. Local times use the BA's civil zone from `scripts/ba_timezones.py`.
+
+```
+inputs:  demand[ba][T], weather[ba][T] (temp, dew, wind), tz[ba], US federal holidays by local date
+
+for each ba, for each local date d (the origin date):
+    O   = utc(d at 10:00 local)             # forecast origin
+    Ld  = utc(d at 08:00 local)             # last demand stamp allowed
+    Wd  = utc(d at 09:00 local)             # last weather stamp allowed (variant A)
+    M0  = utc(d+1 at 00:00 local)
+    M1  = utc(d+2 at 00:00 local)
+    targets = every hourly stamp T with M0 < T <= M1      # 24 stamps, 23 or 25 on a clock-change day
+
+    # shared by all target hours of this (ba, d); every input is at or before Ld or Wd
+    demand_last = demand[Ld]
+    demand_mean_24h, demand_max_24h = mean, max of demand[Ld-23h .. Ld]
+    demand_mean_168h = mean of demand[Ld-167h .. Ld]
+    demand_change_3h = demand[Ld] - demand[Ld-3h]
+    variant A weather: temp_last = temp[Wd];  temp_mean_24h over [Wd-23h .. Wd];
+                       temp_change_3h;  dew_last;  wind_last
+
+    for each T in targets:
+        hour_local = local(T - 1h).hour                    # 0 to 23, the hour that T closes
+        horizon    = (T - 1h) - O                          # about 14 to 37 hours
+        lag_week_w = demand[T - 168h*w]  for w = 1..4      # always <= Ld
+        lag_day    = demand[T - 24h]  if T - 24h <= Ld  else demand[T - 48h]
+        lag_day_age = 1 or 2 days accordingly              # T - 24h is known only for hours ending by 08:00
+        calendar   = hour_local, weekday, month, day-of-year sin and cos, holiday flag,
+                     day-before and day-after holiday flags, hours in the local day (23, 24 or 25)
+        variant B weather (labeled upper bound): temp[T], dew[T], wind[T], and the target day's
+                     max, min and mean temperature, heating and cooling degrees
+        y = demand[T]                                      # the target
+
+baselines:
+    seasonal_naive      = demand[T - 168h]
+    same_day_type_avg   = mean of demand[T - 168h*w], w = 1..4
+    regression          = hour-of-week effects + holiday flags + heating and cooling degrees
+                          (24-hour mean temperature in variant A, the target day's in variant B)
+    eia_day_ahead (DF)  = benchmark only, for BAs not excluded above
+
+modeling rules:
+    * Missing or non-positive demand is set to missing. Features are never interpolated, because
+      filling a gap would use values after the origin. A row is dropped when y or a baseline's
+      input is missing, and every model is scored on the same remaining rows.
+    * One global LightGBM across BAs with the BA as a category. Demand features and y are divided
+      by the BA's mean demand over the current training window, then scaled back for scoring.
+    * Training rows have origin date <= t0 - 2 days, where t0 is the first test origin date,
+      because a row's targets run to local midnight of d+2.
+```
+
+Checks to write with the code: build the features on a synthetic series whose value is its own timestamp, then assert that no demand input is later than Ld, no variant A weather input is later than Wd, no training target is later than the first test origin, and the 23- and 25-hour days produce 23 and 25 targets.
+
 ## Validation and leakage checklist
 
 Validation is walk-forward with an expanding training window. The first training period is 2019 to 2020, and testing runs from 2021 with refits each quarter. Results are reported separately by regime.
@@ -67,7 +121,7 @@ Leakage checklist:
 1. Every feature uses data available at the origin (10:00 local on day t). Demand is published about an hour after each hour, so use demand only through the stamp at 08:00 local (the hour ending 08:00) to stay conservative.
 2. Stamps are hour-ending, so a stamp at time T covers T minus 1 hour to T. Lags and the target day's 24 hours are built on that basis.
 3. Calendar features come from local time. UTC hour-of-day is never a feature.
-4. Weather in variant A stops at the origin. Variant B is labeled and kept separate.
+4. Weather in variant A stops at the 09:00 local stamp, an hour before the origin. Variant B is labeled and kept separate.
 5. EIA's day-ahead forecast is a benchmark only.
 6. Training data ends at least 2 days before the first test origin, because targets reach 37 hours ahead.
 7. Scaling, encoding, gap handling and outlier thresholds are fit on training data only.
@@ -106,5 +160,5 @@ These limits go in the README as stated facts, because naming them is part of wh
 - [x] Extend weather past 2025-08-27 with the Iowa Mesonet (done; 42 stations to 2026-11-03)
 - [x] Build the hourly weather series per BA (`scripts/weather_hourly.py` writes `data/weather_hourly.parquet`: UTC hour-ending stamps, equal-weight mean over stations, every BA has a temperature in at least 99.46% of hours). Check: in July and August 2023, ERCOT demand correlates 0.97 with temperature one hour earlier (PJM 0.92), with no peak at a negative lag
 - [x] Check when EIA's day-ahead forecast is published, per BA (EIA states by 11:00 ET; the API carries no publication times, so per-BA timing can't be checked. The 10:00 local origin is before it for Eastern BAs and at or after it for the others, so it stays a benchmark only)
-- [ ] Write pseudocode for target and feature construction
+- [x] Write pseudocode for target and feature construction (section above)
 - [ ] Settle the forecast origin (10:00 local is the draft)
