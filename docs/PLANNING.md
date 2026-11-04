@@ -15,7 +15,7 @@ The project tests whether a gradient-boosted model forecasts next-day hourly ele
 
 The target is hourly demand (megawatthours, EIA series type `D`) for each of the 24 hours of the next local day, forecast at 10:00 local time on day t.
 
-- **Forecast origin:** 10:00 in each BA's primary local time zone. Targets are 14 to 37 hours ahead. This mirrors a day-ahead schedule and is close to EIA's own day-ahead forecast, which it publishes by 11:00 ET. Confirm the origin before building features.
+- **Forecast origin:** 10:00 in each BA's primary local time zone. Targets are 14 to 37 hours ahead. This mirrors a day-ahead schedule and is close to EIA's own day-ahead forecast, which it publishes by 11:00 ET. Settled at 10:00 after a sensitivity check (see Results): moving it two to four hours changes LightGBM's error by about 0.2 to 0.4 percentage points and changes no ranking.
 - **Clock:** the API's `hourly` series is on UTC (checked: ERCOT peaks at 23:00 on 2023-07-18, which is 6 pm Central, and the daylight-saving weekend returns exactly 72 hours). Calendar features (hour, weekday, holidays) use each BA's local time, not UTC.
 - **Period stamp:** each stamp marks the hour that ends at that time (hour-ending). Hourly totals built that way match EIA's daily totals on all 28 days checked for ERCOT, PJM and CAISO. Reading the stamps as hour-beginning does not match.
 - **Error metrics:** MAPE and RMSE in MW per BA, RMSE divided by mean demand to compare across BAs, MAE at each day's peak hour, and bias.
@@ -150,6 +150,15 @@ Produced by `scripts/run_evaluation.py` (outputs in the git-ignored `data/eval/`
 - Error rises in later years for LightGBM and for EIA's forecast alike. LightGBM in A: 4.89% in 2021 to 5.76% in 2026. EIA: 3.12% to 5.55%. The cause was not investigated.
 - Regression is worse than previous-day naive in variant A and slightly better in B. Its poor showing in the Texas heat (about 11%) and in several BAs shows that the simple heating and cooling terms are too crude, so it is a weak benchmark and the LightGBM margin over it overstates the value of machine learning.
 - Uri caveat as above: demand in those days is load served, so errors partly measure outages.
+- **Forecast origin sensitivity** (`scripts/run_origin_sensitivity.py`, variant A, test origins 2024-01-01 onward, identical rows and models; the demand cutoff stays two hours before the origin and the weather cutoff one hour before). Seasonal-naive does not depend on the origin.
+
+  | Origin | LightGBM, 20 BAs | Previous-day naive, 20 BAs | LightGBM, 17 BAs | Previous-day naive, 17 BAs | EIA forecast, 17 BAs |
+  | --- | --- | --- | --- | --- | --- |
+  | 06:00 | 5.77 | 7.96 | 5.57 | 7.71 | 4.33 |
+  | 10:00 | 5.34 | 7.49 | 5.14 | 7.25 | 4.33 |
+  | 12:00 | 5.10 | 7.26 | 4.90 | 7.01 | 4.33 |
+
+  A later origin helps because the model sees more of the day's demand, and the gain is concentrated in the morning target hours (LightGBM 00:00 to 05:59 target error 4.63 / 4.13 / 3.96 and 06:00 to 11:59 5.54 / 5.07 / 4.72 at origins 06 / 10 / 12). The ranking of models and the finding that EIA's forecast beats variant A LightGBM do not change at any origin. 10:00 is kept because it mirrors a real day-ahead schedule; a 12:00 origin would be after EIA's stated 11:00 ET publication time for every BA, so the forecast would no longer be a day-ahead schedule that EIA's could be compared with. Day-ahead market deadlines were not checked.
 
 ## Publishing rules
 
@@ -189,7 +198,7 @@ These limits go in the README as stated facts, because naming them is part of wh
 - [x] Build the models and the walk-forward evaluation (`electricity/models.py`, `electricity/evaluate.py`, `scripts/run_evaluation.py`)
 - [x] Add the demand cleaning rule after the first evaluation showed impossible EIA values (`electricity/cleaning.py`, `tests/test_cleaning.py`; checks in `scripts/check_cleaning.py` and `scripts/run_sensitivity.py`)
 - [x] Run the full evaluation for variants A and B on cleaned data (results section above)
-- [ ] Settle the forecast origin (10:00 local is the draft)
+- [x] Settle the forecast origin (10:00 local kept; 06:00 and 12:00 tested, see Results)
 - [ ] SHAP importance for LightGBM
 - [ ] Look into why error rises in 2025 and 2026
 - [ ] Dashboard, with EIA values and computed values labeled separately
