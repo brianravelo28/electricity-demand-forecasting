@@ -32,23 +32,38 @@ def training_scale(train):
     return train.dropna(subset=["y"]).groupby("ba")["y"].mean()
 
 
-def _matrix(df, scale, bas, variant):
+SCALINGS = ("training_mean", "recent_week")
+
+
+def _matrix(df, scale, bas, variant, scaling="training_mean"):
+    """Features with demand levels divided by a scale, and that scale per row.
+
+    training_mean: each BA's mean demand over the training window (the default).
+    recent_week:   the mean of the 168 hours up to the last demand reading, known at the origin,
+                   so a BA whose demand has grown is scaled by where it is now.
+    """
     x = df[feature_columns(variant)].astype(float)
-    s = df["ba"].map(scale).to_numpy(dtype=float)
+    if scaling == "recent_week":
+        s = df["demand_mean_168h"].to_numpy(dtype=float)
+    elif scaling == "training_mean":
+        s = df["ba"].map(scale).to_numpy(dtype=float)
+    else:
+        raise ValueError(f"scaling must be one of {SCALINGS}")
     for col in LEVEL_COLS:
         x[col] = df[col].to_numpy(dtype=float) / s
     x["ba"] = pd.Categorical(df["ba"], categories=list(bas))
     return x, s
 
 
-def fit_predict_lgbm(train, test, variant, bas, rounds=400):
-    """One global LightGBM across BAs."""
+def fit_predict_lgbm(train, test, variant, bas, rounds=400, scaling="training_mean"):
+    """One global LightGBM across BAs. Rows whose scale is missing get a missing forecast."""
     scale = training_scale(train)
     train = train.dropna(subset=["y"])
-    x_tr, s_tr = _matrix(train, scale, bas, variant)
-    data = lgb.Dataset(x_tr, label=train["y"].to_numpy(dtype=float) / s_tr, categorical_feature=["ba"])
+    x_tr, s_tr = _matrix(train, scale, bas, variant, scaling)
+    ok = np.isfinite(s_tr) & (s_tr > 0)
+    data = lgb.Dataset(x_tr[ok], label=train["y"].to_numpy(dtype=float)[ok] / s_tr[ok], categorical_feature=["ba"])
     booster = lgb.train(LGBM_PARAMS, data, num_boost_round=rounds)
-    x_te, s_te = _matrix(test, scale, bas, variant)
+    x_te, s_te = _matrix(test, scale, bas, variant, scaling)
     return booster.predict(x_te) * s_te, booster
 
 

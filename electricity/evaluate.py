@@ -40,7 +40,8 @@ def load_rows(variant, bas, tz_map):
     return pd.concat(frames, ignore_index=True)
 
 
-def walk_forward(rows, bas, variant, start="2021-01-01", rounds=400, max_blocks=None, log=print):
+def walk_forward(rows, bas, variant, start="2021-01-01", rounds=400, max_blocks=None, log=print,
+                 scaling="training_mean"):
     last = rows["origin_date"].max()
     starts = pd.date_range(start, last, freq="QS")
     out = []
@@ -51,7 +52,7 @@ def walk_forward(rows, bas, variant, start="2021-01-01", rounds=400, max_blocks=
         train, test = split_by_origin(rows, s, end)
         test = test.copy()
         test["pred_regression"] = models.fit_predict_regression(train, test, variant)
-        test["pred_lightgbm"], _ = models.fit_predict_lgbm(train, test, variant, bas, rounds)
+        test["pred_lightgbm"], _ = models.fit_predict_lgbm(train, test, variant, bas, rounds, scaling)
         for name, col in NAIVE.items():
             test[f"pred_{name}"] = test[col]
         test["pred_eia_df"] = test["eia_df"]

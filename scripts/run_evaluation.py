@@ -28,15 +28,19 @@ def main():
     ap.add_argument("--start", default="2021-01-01")
     ap.add_argument("--rounds", type=int, default=400)
     ap.add_argument("--max-blocks", type=int, default=None)
+    ap.add_argument("--scaling", choices=["training_mean", "recent_week"], default="training_mean",
+                    help="how LightGBM's demand inputs and target are scaled (default: training-window mean)")
     args = ap.parse_args()
     bas = args.bas.split(",")
-    tag = f"{args.variant}" + ("_trial" if args.max_blocks or args.bas != ",".join(BA_TIMEZONE) else "")
+    tag = (f"{args.variant}" + ("" if args.scaling == "training_mean" else f"_{args.scaling}")
+           + ("_trial" if args.max_blocks or args.bas != ",".join(BA_TIMEZONE) else ""))
 
     t0 = time.time()
     rows = evaluate.load_rows(args.variant, bas, BA_TIMEZONE)
     print(f"rows: {len(rows):,}  BAs: {len(bas)}  loaded in {time.time() - t0:.0f}s", flush=True)
     preds = evaluate.walk_forward(rows, bas, args.variant, args.start, args.rounds, args.max_blocks,
-                                  log=lambda s: print(f"[{time.time() - t0:5.0f}s] {s}", flush=True))
+                                  log=lambda s: print(f"[{time.time() - t0:5.0f}s] {s}", flush=True),
+                                  scaling=args.scaling)
     OUT.mkdir(parents=True, exist_ok=True)
     preds.to_parquet(OUT / f"predictions_{tag}.parquet", index=False)
 
