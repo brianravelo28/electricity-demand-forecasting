@@ -243,5 +243,7 @@ These limits go in the README as stated facts, because naming them is part of wh
 - [ ] Try scaling demand by a recent level instead of the training mean, to reduce the load-growth bias (optional)
 - [x] Check SRP's net generation and interchange (`NG`, `TI`): its 2026 demand swings track swings in net exports (see Results)
 - [x] Decide how SRP is shown: kept in the headline results, with an ex-SRP line reported beside them (`scripts/report.py --exclude SRP`)
-- [ ] Dashboard: mark SRP with a note that its 2026 demand follows export swings no method here predicts
-- [ ] Dashboard, with EIA values and computed values labeled separately
+- [x] Dashboard built on 2026-11-04 (see below); SRP carries a note, and EIA values and computed values are labeled separately in the footer and the data descriptions
+- [x] Ran the dashboard locally through `dashboard/preview.html` and looked at every chart at desktop and phone width: all eight charts draw, the controls redraw them, and the legends wrap on a phone (fixed after the first look). This is a local stand-in for the published runtime, so the published page itself, whose automatic check never ran, is still unseen
+- [ ] Open the published dashboard once and look it over
+- [ ] Share the dashboard (it is private until shared from its Share menu) and add the link to the README

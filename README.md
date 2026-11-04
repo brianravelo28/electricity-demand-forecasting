@@ -25,6 +25,24 @@ Raw data comes from the ingestion scripts in `scripts/` (see `docs/PLANNING.md`)
 
 Variant A uses weather observed up to the forecast time. Variant B uses observed weather for the target day and is an upper bound, not something a live system has. Each run takes about 20 to 30 minutes.
 
+## Dashboard
+
+A single page for readers: the headline results, error by year, by balancing authority and in storms and holidays, a viewer for any BA's forecasts against actual demand in five chosen weeks, and what the model relies on. It reads only saved files, never a live service, and labels what is EIA's and what is computed.
+
+```
+.venv\Scripts\python scripts\build_dashboard_data.py
+```
+
+To view it locally, serve the project folder and open the preview page. `dashboard/preview.html` stands in for the claude.ai runtime that the published page needs (it supplies the small data and chart API the page uses, and loads d3 from a CDN, so it needs a network connection):
+
+```
+.venv\Scripts\python -m http.server 8765
+```
+
+Then open `http://localhost:8765/dashboard/preview.html`.
+
+The build script writes small JSON files to `data/dashboard/` from the saved evaluation outputs (run the evaluation and `scripts/run_shap.py` first). The page is `dashboard/index.html`. It was published as a claude.ai dashboard whose data sources are those files, so a change to a figure means rebuilding the files and replacing them there.
+
 ## Data cleaning
 
 EIA's hourly demand contains impossible values (for example about 2.1 billion MWh for PJM). Raw files are kept untouched. A reading is set to missing when it is not positive or falls outside 0.4 to 2.0 times the median of the previous 15 days, using only earlier data. These thresholds were chosen by eye on the full dataset and not fit on training data; rerunning with 0.5/1.8 and 0.3/3.0 changed no overall error by more than 0.05 percentage points. The rule discards about 15 genuine extreme-event hours and leaves a few dozen isolated dips. Details and checks are in `docs/PLANNING.md`.
