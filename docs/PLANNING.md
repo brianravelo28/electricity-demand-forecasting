@@ -38,6 +38,7 @@ The universe is the largest BAs by average demand with complete series, selected
 - **Weather stations (draft):** each of the 20 BAs maps to one to four airports in its load centers (42 stations in `scripts/weather_stations.py`; Phoenix serves SRP and AZPS), equal weighted. FPL uses Miami and Fort Lauderdale, because Palm Beach is not in the Mesonet archive. From 2019-01-01 to 2026-11-03, each station has a good temperature in at least 99.3% of hours, and every BA has one in at least 99.4% of hours from at least one of its stations. NOAA observations flagged suspect or erroneous are dropped. The airport choices are a judgement call to review.
 - **Weather gap:** the ISD archive stops at 2025-08-27, about 14 months before the demand data ends. `scripts/ingest_iem.py` takes the same stations from the Iowa Mesonet from 2025-08-20 on (`data/raw/weather/obs_iem/`), early enough to cover the station whose ISD data ends first (2025-08-25). Mesonet has no quality flags, so readings that are physically impossible are set to missing, and none were found. Of 344,418 matched temperatures in the overlap year, 119 differ from ISD by more than 0.5 °C and 9 by more than 2 °C, and these are not filtered. After the switch, every BA has a good temperature in at least 99.6% of hours from at least one station. The hourly builder (`scripts/weather_hourly.py`) uses ISD wherever a station has it and Mesonet after that.
 - **Gaps:** in 2023, ERCOT was complete, CAISO had 2 null values, and PJM had 1 missing hour and 24 nulls. Keep raw values untouched in storage and add flags. Features are never interpolated, because filling a gap uses values after the origin. Gaps stay missing, and target rows with a missing value are dropped.
+- **Cleaning impossible readings (`electricity/cleaning.py`):** the raw demand has impossible values, for example PJM at about 2.1 billion MWh (2^31), SWPP at 3.6 million, TVA at -9.9 million, and spikes or drop-outs of 5 to 10 times in SRP, NEVP, PACE, AZPS, PSCO and FPL. A first full evaluation that only dropped non-positive readings was discarded, because these values dominated the errors (PJM showed 115% to 290%). The rule sets a reading to missing when it is not positive or falls outside 0.4 to 2.0 times the median of the previous 15 days. It looks backward only, so it uses nothing after the reading, and raw files are untouched. It removes under 0.11% of hours in every BA and nothing during Uri or Elliott. Checked against EIA's day-ahead forecast on the 17 BAs that have a usable one: removed readings are usually hundreds of percent away from the forecast, but 15 of 227 removed hours are within 25% of it and look genuine (the June 2025 ISNE heat wave, SRP's May 2026 ramp, FPC during Elliott, FPC on 2024-10-10, when demand dropped). The thresholds are fixed round numbers chosen by eye from the full dataset, not fit on training data. Rerunning variant A with 0.5/1.8 and 0.3/3.0 changed no model's overall error by more than 0.05 percentage points and did not change the ranking, so 0.4/2.0 was kept. About 72 of roughly a million scored rows still have a previous-day error above 100%, mostly isolated dips in SRP, AZPS and FPC that fall just inside the thresholds.
 - **Ingestion is separate from analysis:** one script downloads raw data to parquet and everything else reads only from those files. The public dashboard also reads saved files and never calls the API.
 
 ## Models and features
@@ -99,7 +100,8 @@ baselines:
     eia_day_ahead (DF)  = benchmark only, for BAs not excluded above
 
 modeling rules:
-    * Missing or non-positive demand is set to missing. Features are never interpolated, because
+    * Missing, non-positive or implausible demand (see the cleaning rule under Universe and data)
+      is set to missing. Features are never interpolated, because
       filling a gap would use values after the origin. A row is dropped when y or a baseline's
       input is missing, and every model is scored on the same remaining rows.
     * One global LightGBM across BAs with the BA as a category. Demand features and y are divided
@@ -126,9 +128,28 @@ Leakage checklist:
 4. Weather in variant A stops at the 09:00 local stamp, an hour before the origin. Variant B is labeled and kept separate.
 5. EIA's day-ahead forecast is a benchmark only.
 6. Training data ends at least 2 days before the first test origin, because targets reach 37 hours ahead.
-7. Scaling, encoding, gap handling and outlier thresholds are fit on training data only.
+7. Scaling, encoding and gap handling are fit on training data only. The outlier rule uses fixed thresholds and only earlier readings, but the thresholds were chosen after looking at the full dataset (see the cleaning note above), so this item is met in the backward-looking sense, not the strict one.
 8. The BA list is fixed by the rule above using 2019 to 2020 data only.
 9. The API serves the latest revised values, not what was known in real time. This cannot be fixed, so it goes in the README.
+
+## Results (cleaned data, 20 BAs, quarterly refits, test origins 2021-01-01 to 2026-11-01)
+
+Produced by `scripts/run_evaluation.py` (outputs in the git-ignored `data/eval/`). Mean absolute percentage error over hourly forecasts, each model scored on the same rows. Variant A uses weather observed up to the origin; variant B uses observed weather for the target day and is an upper bound, not something a live system has.
+
+| Model | A: all 20 BAs | B: all 20 BAs | A: 17 BAs with EIA forecast | B: 17 BAs with EIA forecast |
+| --- | --- | --- | --- | --- |
+| Seasonal-naive | 9.48 | 9.48 | 9.23 | 9.23 |
+| Previous-day naive | 7.41 | 7.41 | 7.18 | 7.18 |
+| Same-day-type average | 9.17 | 9.17 | 9.00 | 9.00 |
+| Regression | 8.77 | 7.69 | 8.66 | 7.65 |
+| LightGBM | 5.18 | 3.32 | 4.99 | 3.21 |
+| EIA day-ahead forecast | n/a | n/a | 3.75 | 3.75 |
+
+- LightGBM is best of the five models in both variants, in every year and in every BA. It is not the best against EIA's own forecast: with variant A weather it loses to it overall and in 13 of the 17 BAs; with perfect target-day weather (B) it wins overall and in 10 of 17.
+- Error by regime on the rows where EIA's forecast exists (A / B for LightGBM): Uri 6.19 / 3.86 against EIA 5.55; Elliott 7.97 / 4.81 against 4.40; ERCOT summer 2023 5.31 / 3.19 against 2.04; holidays and adjacent days 5.45 / 3.59 against 3.96; calm days 4.93 / 3.17 against 3.73. In the Texas heat, previous-day naive (4.15) beats variant A LightGBM.
+- Error rises in later years for LightGBM and for EIA's forecast alike. LightGBM in A: 4.89% in 2021 to 5.76% in 2026. EIA: 3.12% to 5.55%. The cause was not investigated.
+- Regression is worse than previous-day naive in variant A and slightly better in B. Its poor showing in the Texas heat (about 11%) and in several BAs shows that the simple heating and cooling terms are too crude, so it is a weak benchmark and the LightGBM margin over it overstates the value of machine learning.
+- Uri caveat as above: demand in those days is load served, so errors partly measure outages.
 
 ## Publishing rules
 
@@ -146,7 +167,8 @@ These limits go in the README as stated facts, because naming them is part of wh
 
 - **History:** the API starts in 2019, so the sample has few extreme events (Uri and Elliott are the main ones).
 - **Revisions:** values are the latest revised ones, so backtests are easier than a live system's.
-- **Imputation:** EIA fills some anomalous demand values itself, and the README states which cleaning rules were added.
+- **Imputation and cleaning:** EIA fills some anomalous demand values itself. The README states the added cleaning rule (0.4 to 2.0 times the previous 15 days' median), that its thresholds were chosen by eye on the full dataset, that it discards about 15 genuine extreme-event hours, and that a few dozen isolated dips remain.
+- **Benchmark gaps:** EIA's day-ahead forecast is missing or unusable for FPC, PSCO and LGEE, so the comparison with it covers 17 of the 20 BAs.
 - **Reporting quirks:** pseudo-ties and dynamic scheduling can distort a BA's demand. Distribution-connected generation such as rooftop solar is generally excluded.
 - **Weather:** the main results use observed weather, not forecasts.
 - **Scope:** conclusions are about the model versus baselines, not about outperforming operators.
@@ -163,4 +185,11 @@ These limits go in the README as stated facts, because naming them is part of wh
 - [x] Build the hourly weather series per BA (`scripts/weather_hourly.py` writes `data/weather_hourly.parquet`: UTC hour-ending stamps, equal-weight mean over stations, every BA has a temperature in at least 99.46% of hours). Check: in July and August 2023, ERCOT demand correlates 0.97 with temperature one hour earlier (PJM 0.92), with no peak at a negative lag
 - [x] Check when EIA's day-ahead forecast is published, per BA (EIA states by 11:00 ET; the API carries no publication times, so per-BA timing can't be checked. The 10:00 local origin is before it for Eastern BAs and at or after it for the others, so it stays a benchmark only)
 - [x] Write pseudocode for target and feature construction (section above)
+- [x] Write the feature and target code with leakage tests (`electricity/features.py`, `tests/test_features.py`)
+- [x] Build the models and the walk-forward evaluation (`electricity/models.py`, `electricity/evaluate.py`, `scripts/run_evaluation.py`)
+- [x] Add the demand cleaning rule after the first evaluation showed impossible EIA values (`electricity/cleaning.py`, `tests/test_cleaning.py`; checks in `scripts/check_cleaning.py` and `scripts/run_sensitivity.py`)
+- [x] Run the full evaluation for variants A and B on cleaned data (results section above)
 - [ ] Settle the forecast origin (10:00 local is the draft)
+- [ ] SHAP importance for LightGBM
+- [ ] Look into why error rises in 2025 and 2026
+- [ ] Dashboard, with EIA values and computed values labeled separately
