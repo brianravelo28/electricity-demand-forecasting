@@ -43,6 +43,18 @@ Then open `http://localhost:8765/dashboard/preview.html`.
 
 The build script writes small JSON files to `data/dashboard/` from the saved evaluation outputs (run the evaluation and `scripts/run_shap.py` first). The page is `dashboard/index.html`. It was published as a claude.ai dashboard whose data sources are those files, so a change to a figure means rebuilding the files and replacing them there.
 
+### Deploying to Render
+
+`render.yaml` describes a Render static site that serves the `site/` folder, which holds the page and its data pre-built, so Render has nothing to build or run. After changing a figure, rebuild and push:
+
+```
+.venv\Scripts\python scripts\build_dashboard_data.py
+.venv\Scripts\python scripts\build_site.py
+git add site && git commit -m "Rebuild the site" && git push
+```
+
+In Render, choose New, then Blueprint, and select this repository (for a private repository, give Render access to it in its GitHub settings). The published site is public to anyone with the link. The charts load d3 from a CDN, so visitors need a network connection. `site/results/` holds computed results only; no raw EIA files are in the repository.
+
 ## Data cleaning
 
 EIA's hourly demand contains impossible values (for example about 2.1 billion MWh for PJM). Raw files are kept untouched. A reading is set to missing when it is not positive or falls outside 0.4 to 2.0 times the median of the previous 15 days, using only earlier data. These thresholds were chosen by eye on the full dataset and not fit on training data; rerunning with 0.5/1.8 and 0.3/3.0 changed no overall error by more than 0.05 percentage points. The rule discards about 15 genuine extreme-event hours and leaves a few dozen isolated dips. Details and checks are in `docs/PLANNING.md`.

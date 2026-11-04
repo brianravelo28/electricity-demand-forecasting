@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Next-day hourly electricity demand forecasts for 20 US balancing authorities: LightGBM against simple baselines and EIA's own forecasts.">
+<title>Electricity demand forecasts</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --color-fg: #1f2328; --color-fg-muted: #59636e; --color-bg: #ffffff; --color-panel: #f6f8fa;
+    --color-border-line: #d1d9e0; --color-ok: #1a7f37; --color-warn: #9a6700; --color-bad: #cf222e;
+    --cds-radius: 8px; --cds-pad-lg: 20px; --cds-pad-sm: 10px; --cds-pad-xs: 5px; --cds-gap-md: 16px;
+    --cds-font-size-caption: 12.5px; --cds-font-size-body: 14.5px; --cds-font-size-heading: 18px; --cds-font-size-title: 22px;
+    --cds-font-weight-medium: 600;
+    --cds-chart-muted: #b4bcc8; --cds-chart-grid: #e6ebf0; --cds-chart-axis: #9aa4b2; --cds-chart-reference: #6e7781;
+    --cds-chart-status-critical: #cf222e; --cds-surface-popover: #ffffff; --cds-border: #d1d9e0;
+    --cds-shadow-popover: 0 4px 14px rgba(0, 0, 0, .14); --cds-text-secondary: #59636e;
+    --cds-dur-slow: 300ms; --cds-ease-out: cubic-bezier(.2, .8, .2, 1);
+    --font-anthropic-sans: system-ui, -apple-system, "Segoe UI", sans-serif; --font-anthropic-serif: Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --color-fg: #e6edf3; --color-fg-muted: #9aa5b1; --color-bg: #0f1419; --color-panel: #171d24;
+      --color-border-line: #2b333d; --color-ok: #3fb950; --color-warn: #d29922; --color-bad: #f85149;
+      --cds-chart-muted: #4a5563; --cds-chart-grid: #232b34; --cds-chart-axis: #5b6674; --cds-chart-reference: #8b96a3;
+      --cds-chart-status-critical: #f85149; --cds-surface-popover: #1d252e; --cds-border: #3a4450;
+      --cds-shadow-popover: 0 4px 14px rgba(0, 0, 0, .5); --cds-text-secondary: #9aa5b1;
+    }
+  }
+  body { margin: 0; background: var(--color-bg); color: var(--color-fg); font: 14.5px/1.4 var(--font-anthropic-sans); }
+  #dash-root { --dash-gutter: 24px; padding: 24px var(--dash-gutter) 64px; }
+  .dash-skeleton { background: linear-gradient(90deg, var(--color-panel), var(--cds-chart-grid), var(--color-panel)); border-radius: 6px; }
+</style>
+</head>
+<body>
+<div id="dash-root"></div>
+<script>
+(() => {
+  const cache = {}, listeners = [], drawers = {};
+  const params = {};
+  let queued = false;
+  const run = () => {
+    queued = false;
+    listeners.forEach((fn) => fn());
+    Object.entries(drawers).forEach(([name, fn]) => document.querySelectorAll('[data-draw="' + name + '"]').forEach((el) => fn(el)));
+  };
+  const schedule = () => { if (!queued) { queued = true; requestAnimationFrame(run); } };
+  const load = (id) => {
+    if (cache[id]) return cache[id];
+    cache[id] = { status: 'loading', data: [] };
+    fetch('results/' + id + '.json')
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((d) => { cache[id] = { status: 'ok', data: d }; schedule(); })
+      .catch(() => { cache[id] = { status: 'error', data: [] }; schedule(); });
+    return cache[id];
+  };
+  window.dash = {
+    colors: ['#2f6fed', '#e5742a', '#8a63d2', '#2a9d8f', '#c0486b', '#8c8f3a', '#5b6b7b', '#b08900'],
+    data: (id) => { const c = load(id); return { status: c.status, data: c.data, columns: [], message: '', refreshing: false, meta: [] }; },
+    params: () => ({ ...params }),
+    setParams: (o) => { Object.assign(params, o); schedule(); },
+    resetParams: () => {},
+    onData: (fn) => { listeners.push(fn); },
+    draw: (name, fn) => { drawers[name] = fn; },
+    refresh: () => {}, setLink: () => {},
+  };
+  window.addEventListener('resize', schedule);
+
+  fetch('page.html').then((r) => r.text()).then((text) => {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = text;
+    const root = document.getElementById('dash-root');
+    const scripts = [...tpl.content.querySelectorAll('script')];
+    scripts.forEach((s) => s.remove());
+    root.appendChild(tpl.content);
+    scripts.forEach((s) => { const n = document.createElement('script'); n.textContent = s.textContent; document.body.appendChild(n); });
+    schedule();
+  });
+})();
+</script>
+</body>
+</html>

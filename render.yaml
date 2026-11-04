@@ -1,0 +1,12 @@
+# Render Blueprint: serves the pre-built dashboard in site/ as a static site.
+# Rebuild site/ with scripts/build_dashboard_data.py then scripts/build_site.py, commit, and push.
+# Fields checked against https://render.com/docs/blueprint-spec: type web with runtime static, and
+# staticPublishPath. buildCommand is listed there as required for non-Docker services; the docs give
+# no "no build" value, so a no-op is used. Custom headers are left out because their render.yaml
+# syntax could not be confirmed.
+services:
+  - type: web
+    name: electricity-demand-forecasts
+    runtime: static
+    staticPublishPath: ./site
+    buildCommand: echo "Nothing to build. site/ is committed pre-built."

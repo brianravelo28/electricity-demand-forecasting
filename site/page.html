@@ -1,0 +1,525 @@
+<meta name="dash-one-writer">
+<style>
+  #dash-root { --dash-gutter: clamp(12px, 3.5vw, 36px); }
+  .ed { max-width: 1040px; margin-inline: auto; display: flex; flex-direction: column; gap: 36px; font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .ed * { box-sizing: border-box; }
+  .ed h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: clamp(1.7rem, 4.2vw, 2.45rem); line-height: 1.12; margin: 0 0 14px; text-wrap: balance; }
+  .ed h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0 0 4px; }
+  .ed h3 { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); margin: 18px 0 4px; }
+  .ed p { margin: 0 0 10px; line-height: 1.55; }
+  .ed .eyebrow { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
+  .ed .lede { font-size: 1.06rem; max-width: 66ch; }
+  .ed .note { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); max-width: 72ch; }
+  .ed b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ed .big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: 1.15em; }
+  .ed-controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; padding: 14px var(--cds-pad-lg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); position: sticky; top: 0; z-index: 3; }
+  .ed-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .ed-field > span { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ed-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; }
+  .ed-seg button { font: inherit; font-size: var(--cds-font-size-caption); padding: 7px 12px; border: 0; background: transparent; color: var(--color-fg); cursor: pointer; }
+  .ed-seg button + button { border-left: 1px solid var(--color-border-line); }
+  .ed-seg button[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); }
+  .ed select { font: inherit; font-size: var(--cds-font-size-caption); padding: 7px 10px; max-width: 100%; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); }
+  .ed button:focus-visible, .ed select:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+  .ed-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; }
+  .ed-chart { position: relative; min-height: 120px; }
+  .ed-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .ed-chart svg text { font-family: var(--font-anthropic-sans); fill: var(--color-fg); }
+  .ed-chart svg .mut { fill: var(--color-fg-muted); font-size: 11px; }
+  .ed-chart svg .row-hit { cursor: pointer; }
+  .ed-chart.dash-skeleton { min-height: 220px; }
+  .ed-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--cds-gap-md); }
+  .ed-callout { border-left: 3px solid var(--cds-chart-status-critical); padding: 8px 12px; background: var(--color-panel); border-radius: 0 var(--cds-radius) var(--cds-radius) 0; }
+  .ed-callout[hidden] { display: none; }
+  .ed ul { margin: 0 0 10px; padding-left: 1.2em; }
+  .ed li { margin-bottom: 6px; line-height: 1.5; max-width: 78ch; }
+  .ed .tt { position: absolute; z-index: 4; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; }
+  .ed .tt[hidden] { display: none; }
+  .ed .tt-h { color: var(--cds-text-secondary); margin-bottom: 3px; }
+  .ed .tt-l { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-variant-numeric: tabular-nums; }
+  .ed .tt-l .sw { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .ed .tt-l span { flex: 1; text-align: left; }
+  .ed .fail { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 120px; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .ed .fail i { width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+  .ed footer { border-top: 1px solid var(--color-border-line); padding-top: 18px; }
+  @media (max-width: 640px) { .ed-controls { position: static; } }
+  @media (prefers-reduced-motion: no-preference) { .ed-chart svg .bar { transition: opacity var(--cds-dur-slow) var(--cds-ease-out); } }
+</style>
+
+<main class="ed" id="top">
+  <header>
+    <p class="eyebrow">Portfolio project · US power grid · hourly forecasts</p>
+    <h1 id="title">Can a machine-learning model forecast tomorrow’s electricity demand better than simple rules?</h1>
+    <p class="lede">I tested one model, LightGBM, against simple baselines on <b data-draw="val" data-source="overall" data-field="n_bas" data-where="sample=all&amp;variant=A&amp;model=lightgbm" data-fmt="int">—</b> US balancing authorities (the operators that keep a region’s supply and demand matched). Each day at 10:00 local time it predicted every hour of the next day, from 2021 to October 2026, and was only ever shown data from before the forecast.</p>
+    <p class="lede">With the weather known at forecast time, LightGBM missed demand by <b class="big" data-draw="val" data-source="overall" data-field="mape" data-where="sample=all&amp;variant=A&amp;model=lightgbm">—</b> on average, against <b class="big" data-draw="val" data-source="overall" data-field="mape" data-where="sample=all&amp;variant=A&amp;model=previous_day_naive">—</b> for simply repeating yesterday. On the <b data-draw="val" data-source="overall" data-field="n_bas" data-where="sample=eia&amp;variant=A&amp;model=lightgbm" data-fmt="int">—</b> BAs that also report a day-ahead forecast to EIA, that forecast was off by <b class="big" data-draw="val" data-source="overall" data-field="mape" data-where="sample=eia&amp;variant=A&amp;model=eia_df">—</b> against LightGBM’s <b class="big" data-draw="val" data-source="overall" data-field="mape" data-where="sample=eia&amp;variant=A&amp;model=lightgbm">—</b> on the same hours. Handed perfect weather for the target day, which no real forecaster has, LightGBM falls to <b class="big" data-draw="val" data-source="overall" data-field="mape" data-where="sample=eia&amp;variant=B&amp;model=lightgbm">—</b> and edges past it.</p>
+    <p class="note">So: the model clearly beats simple rules, and it does not beat the operators’ own forecasts unless it is given tomorrow’s weather in advance.</p>
+  </header>
+
+  <section class="ed-controls" aria-label="Controls">
+    <div class="ed-field">
+      <span id="lbl-weather">Weather the model sees</span>
+      <div class="ed-seg" role="group" aria-labelledby="lbl-weather">
+        <button type="button" data-variant="A" aria-pressed="true">Known at forecast time</button>
+        <button type="button" data-variant="B" aria-pressed="false">Perfect target-day weather</button>
+      </div>
+    </div>
+    <div class="ed-field">
+      <span id="lbl-sample">Balancing authorities scored</span>
+      <select id="sample-select" aria-labelledby="lbl-sample">
+        <option value="all">All 20</option>
+        <option value="eia">The 17 with an EIA forecast</option>
+        <option value="all_no_srp">19, without SRP</option>
+        <option value="eia_no_srp">16 with an EIA forecast, without SRP</option>
+      </select>
+    </div>
+  </section>
+
+  <p class="note" id="weather-explainer"><b>What the weather switch means.</b> Take a forecast made on Tuesday at 10:00 for Wednesday’s 24 hours. “Known at forecast time” lets the model see weather up to Tuesday 09:00, the day the forecast is made, which is all a real forecaster would have. “Perfect target-day weather” also shows it the weather that actually happens on Wednesday, the day being forecast. Nobody has that at 10:00 on Tuesday, so treat those results as a ceiling, not a score a live system could reach.</p>
+
+  <section id="errors" class="ed-card">
+    <h2>How big are the misses?</h2>
+    <p class="note">Average size of the miss as a share of actual demand, over every hour of the next day (mean absolute percentage error). Lower is better. Every model is scored on the same hours.</p>
+    <div class="ed-chart dash-skeleton" data-draw="chart-models" data-source="overall models" role="img" aria-label="Bar chart of average forecast error by model"></div>
+    <p class="note">Perfect-weather results are an upper bound: a live system would have to use weather forecasts, which are less exact than observations.</p>
+  </section>
+
+  <section id="years" class="ed-card">
+    <h2>Has accuracy held up over time?</h2>
+    <p class="note">The model is retrained every quarter on earlier data only. 2026 covers January to October.</p>
+    <div class="ed-chart dash-skeleton" data-draw="chart-years" data-source="by_year models" role="img" aria-label="Line chart of forecast error by year for each model"></div>
+  </section>
+
+  <section id="bas" class="ed-card">
+    <h2>Where does it work, and where doesn’t it?</h2>
+    <p class="note">One row per balancing authority, sorted by LightGBM’s error. Select a row to look at its forecasts further down.</p>
+    <div class="ed-chart dash-skeleton" data-draw="chart-bas" data-source="by_ba bas" role="img" aria-label="Dot chart of forecast error for each balancing authority"></div>
+  </section>
+
+  <section id="stress" class="ed-card">
+    <h2>What about extreme weather and holidays?</h2>
+    <p class="note">Demand reported during Winter Storm Uri is the load actually served, so rotating outages are part of the error in those days.</p>
+    <div class="ed-chart dash-skeleton" data-draw="chart-regimes" data-source="regimes" role="img" aria-label="Grouped bars of forecast error in storms, heat, holidays and ordinary days"></div>
+  </section>
+
+  <section id="explore" class="ed-card">
+    <h2>Look at a forecast</h2>
+    <div class="ed-controls" style="position: static; border: 0; padding: 0; background: transparent; margin-bottom: 8px;">
+      <div class="ed-field"><span id="lbl-ba">Balancing authority</span><select id="ba-select" data-draw="ba-select" data-source="bas" aria-labelledby="lbl-ba"></select></div>
+      <div class="ed-field"><span id="lbl-window">Week</span><select id="window-select" data-draw="window-select" data-source="windows" aria-labelledby="lbl-window"></select></div>
+    </div>
+    <p class="note" data-draw="window-caption" data-source="windows">—</p>
+    <div class="ed-chart dash-skeleton" data-draw="chart-hourly" data-source="hourly" role="img" aria-label="Hourly line chart of actual demand and forecasts for the chosen week"></div>
+    <p class="ed-callout" id="srp-note" hidden>SRP’s reported demand in 2026 follows swings in its net exports to other utilities. Generation stays steady while demand moves with exports, and no method here, including SRP’s own forecast to EIA, predicts that.</p>
+    <h3>Error by month</h3>
+    <div class="ed-chart dash-skeleton" data-draw="chart-monthly" data-source="monthly" role="img" aria-label="Line chart of monthly forecast error for the chosen balancing authority"></div>
+  </section>
+
+  <section id="drivers" class="ed-card">
+    <h2>What does the model look at?</h2>
+    <p class="note">Average push each input gives a forecast, measured with SHAP, as a share of the total push. Taken from one model trained on data through 2024 and explained on 2025. Related inputs share credit, so read the groups first.</p>
+    <div class="ed-grid2">
+      <div><h3>By group</h3><div class="ed-chart dash-skeleton" data-draw="chart-shap-groups" data-source="shap" role="img" aria-label="Bars of how much each group of inputs moves the forecast"></div></div>
+      <div><h3>Top single inputs</h3><div class="ed-chart dash-skeleton" data-draw="chart-shap-features" data-source="shap" role="img" aria-label="Bars of the twelve inputs that move the forecast most"></div></div>
+    </div>
+  </section>
+
+  <section id="method">
+    <h2>How it was done</h2>
+    <ul>
+      <li><b>Target.</b> Demand for each of the 24 hours of the next local day, forecast at 10:00 local time, so 14 to 37 hours ahead. Demand inputs stop at 08:00 and weather inputs at 09:00, so nothing from after the forecast leaks in.</li>
+      <li><b>Baselines.</b> The same hour last week; the same hour yesterday; the average of the last four same weekdays; and a regression on hour of week, holidays and heating and cooling temperatures.</li>
+      <li><b>LightGBM.</b> One model shared by all BAs, with demand scaled by each BA’s average over the training window. It uses recent demand and lags, the calendar and weather.</li>
+      <li><b>Validation.</b> Walk-forward: trained on 2019 to 2020 first, then refit every quarter on everything earlier, and tested on the next quarter. Training stops two days before each test quarter begins.</li>
+      <li><b>Weather.</b> Observed temperature, dew point and wind at airports near each BA’s load centers. “Known at forecast time” stops at 09:00 on the day the forecast is made. “Perfect target-day weather” adds the weather actually observed on the day being forecast, the day after, which a live forecaster would not have at 10:00.</li>
+      <li><b>Cleaning.</b> The raw hourly series contain impossible values, such as a reading of about 2.1 billion megawatt-hours in PJM. A reading is set to missing if it is not positive or is outside 0.4 to 2.0 times the median of the previous 15 days. Raw data are untouched.</li>
+      <li><b>Day-ahead timing.</b> Day-ahead markets close their bids between 05:00 and 11:00 local time, mostly around 10:00 to 11:00, so the 10:00 forecast time is typical but not guaranteed to be early enough for every BA. Moving it four hours earlier or two hours later changes LightGBM’s error by less than half a point and changes no ranking.</li>
+    </ul>
+    <h3>What to keep in mind</h3>
+    <ul>
+      <li>EIA’s forecast is whatever each BA reports as its own day-ahead forecast, with no common timing, so its information cannot be matched exactly to the model’s. It is missing or unreliable for three BAs, which is why some views score 17.</li>
+      <li>Error rises in 2025 and 2026 for every method, EIA’s forecast included. Much of it comes from SRP, and from EIA’s forecast getting worse in several BAs. LightGBM does not lose ground against the simple baselines once SRP and AZPS are set aside.</li>
+      <li>LightGBM runs a little low in BAs whose demand has grown past what it saw in training, such as ERCOT and AZPS.</li>
+      <li>Values are the latest revised ones, so backtests are easier than a live system would face. History starts in 2019, so extreme events are few.</li>
+      <li>The conclusions are about the model against baselines and against published forecasts. They say nothing about beating grid operators.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <h2>Sources and credits</h2>
+    <p class="note">Hourly demand and day-ahead forecast values: U.S. Energy Information Administration, Hourly Electric Grid Monitor (Form EIA-930). The day-ahead forecasts shown as “EIA forecast” are the values balancing authorities report, unaltered. The cleaned demand series, every other forecast, the error figures and the SHAP values are computed by the author from EIA data, and are not EIA’s.</p>
+    <p class="note">Weather: NOAA National Centers for Environmental Information, Integrated Surface Database, and for dates from late August 2025 the Iowa Environmental Mesonet at Iowa State University.</p>
+    <p class="note">This is an independent project. It is not affiliated with or endorsed by EIA, NOAA, Iowa State University, or any grid operator named. Each chart is drawn from the attached files, which were produced from saved data; nothing on this page calls a live service.</p>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const ORDER = ['lightgbm', 'eia_df', 'previous_day_naive', 'regression', 'same_day_avg', 'seasonal_naive'];
+  const pct = (v, d = 1) => d3.format('.' + d + 'f')(v) + '%';
+  const rows = (id) => { const d = dash.data(id); return d.status === 'ok' ? d.data : null; };
+  const modelColor = (k) => ({ lightgbm: dash.colors[0], eia_df: dash.colors[1], previous_day_naive: dash.colors[2],
+    regression: dash.colors[3], same_day_avg: dash.colors[4], seasonal_naive: dash.colors[5] })[k];
+  const barColor = (k) => (k === 'lightgbm' || k === 'eia_df' ? modelColor(k) : 'var(--cds-chart-muted)');
+  const shortName = (n) => { const s = n.replace(/,? (Inc\.|LLC|Co\.|Company)$/, ''); return s.length > 34 ? s.slice(0, 32) + '…' : s; };
+
+  dash.setParams({ variant: 'A', sample: 'all', ba: 'ERCO', window: 'texas_heat' });
+
+  function ready(el, ids) {
+    const st = ids.map((i) => dash.data(i).status);
+    if (st.every((s) => s === 'ok')) { el.classList.remove('dash-skeleton'); return true; }
+    if (st.some((s) => s === 'error' || s === 'missing')) {
+      el.classList.remove('dash-skeleton');
+      const d = document.createElement('div'); d.className = 'fail';
+      const dot = document.createElement('i'); const t = document.createElement('span'); t.textContent = 'Failed to load';
+      d.append(dot, t); el.replaceChildren(d);
+    }
+    return false;
+  }
+  function frame(el, H) {
+    el.replaceChildren();
+    el.style.position = 'relative';
+    const W = Math.max(300, el.clientWidth);
+    const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('width', '100%');
+    return { svg, W };
+  }
+  function tw(svg, text, size) {
+    const t = svg.append('text').attr('font-size', size).text(text); const w = t.node().getComputedTextLength(); t.remove(); return w;
+  }
+  function tooltip(el) {
+    const t = document.createElement('div'); t.className = 'tt'; t.hidden = true; el.appendChild(t);
+    return {
+      show(x, y, title, lines) {
+        t.replaceChildren();
+        const h = document.createElement('div'); h.className = 'tt-h'; h.textContent = title; t.appendChild(h);
+        lines.forEach((l) => {
+          const d = document.createElement('div'); d.className = 'tt-l';
+          const s = document.createElement('i'); s.className = 'sw'; s.style.background = l.color || 'transparent';
+          const n = document.createElement('span'); n.textContent = l.name;
+          const v = document.createElement('b'); v.textContent = l.value;
+          d.append(s, n, v); t.appendChild(d);
+        });
+        t.hidden = false;
+        const left = Math.min(Math.max(x + 14, 0), Math.max(0, el.clientWidth - t.offsetWidth));
+        t.style.left = left + 'px'; t.style.top = Math.max(0, y - t.offsetHeight - 10) + 'px';
+      },
+      hide() { t.hidden = true; },
+    };
+  }
+  function grid(svg, x, y, W, top, bottom, left, fmt) {
+    svg.append('g').selectAll('line').data(y.ticks(5)).join('line')
+      .attr('x1', left).attr('x2', W).attr('y1', (d) => y(d)).attr('y2', (d) => y(d)).style('stroke', 'var(--cds-chart-grid)').attr('stroke-width', 1);
+    svg.append('g').selectAll('text').data(y.ticks(5)).join('text').attr('class', 'mut')
+      .attr('x', left - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').text((d) => fmt(d));
+  }
+  function legendPlan(el, labels, extra, x0) { // where each legend entry goes, wrapping to new rows
+    const probe = frame(el, 10);
+    const ws = labels.map((l) => extra + tw(probe.svg, l, 12) + 16);
+    let x = x0, row = 0; const pos = [];
+    ws.forEach((w) => { if (x + w - 16 > probe.W - 8 && x > x0) { x = x0; row += 1; } pos.push({ x, row }); x += w; });
+    el.replaceChildren();
+    return { pos, rows: row + 1 };
+  }
+  function spread(items, gap) { // keep end labels apart
+    items.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < items.length; i++) if (items[i].y - items[i - 1].y < gap) items[i].y = items[i - 1].y + gap;
+    return items;
+  }
+
+  // ---- controls ----
+  const segs = [...document.querySelectorAll('[data-variant]')];
+  segs.forEach((b) => b.addEventListener('click', () => dash.setParams({ variant: b.dataset.variant })));
+  const sampleSel = document.getElementById('sample-select');
+  sampleSel.addEventListener('change', () => dash.setParams({ sample: sampleSel.value }));
+  dash.onData(() => {
+    const p = dash.params();
+    segs.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.variant === p.variant)));
+    sampleSel.value = p.sample;
+    const note = document.getElementById('srp-note');
+    if (note) note.hidden = p.ba !== 'SRP';
+  });
+
+  // ---- numbers in the text ----
+  dash.draw('val', (el) => {
+    const r = rows(el.dataset.source); if (!r) return;
+    const where = [...new URLSearchParams(el.dataset.where || '')];
+    const row = r.find((x) => where.every(([k, v]) => String(x[k]) === v));
+    if (!row) return;
+    const v = row[el.dataset.field];
+    el.textContent = el.dataset.fmt === 'int' ? d3.format(',')(v) : pct(v, +(el.dataset.fmt || 1));
+  });
+
+  // ---- explorer selects ----
+  dash.draw('ba-select', (sel) => {
+    const r = rows('bas'); if (!r) return;
+    sel.replaceChildren(...r.map((b) => new Option(b.ba + ' · ' + shortName(b.name), b.ba)));
+    sel.value = dash.params().ba;
+    sel.onchange = () => dash.setParams({ ba: sel.value });
+  });
+  dash.draw('window-select', (sel) => {
+    const r = rows('windows'); if (!r) return;
+    sel.replaceChildren(...r.map((w) => new Option(w.label, w.window)));
+    sel.value = dash.params().window;
+    sel.onchange = () => dash.setParams({ window: sel.value });
+  });
+  dash.draw('window-caption', (el) => {
+    const r = rows('windows'); if (!r) return;
+    const w = r.find((x) => x.window === dash.params().window); if (!w) return;
+    el.textContent = w.label + ': ' + w.start + ' to ' + w.end + ', local time. Hours missing from the line were removed by the cleaning rule or had no forecast.';
+  });
+
+  // ---- horizontal bars (used three times) ----
+  function hbar(el, items, o = {}) {
+    const W0 = Math.max(300, el.clientWidth), stack = W0 < 520, row = stack ? 46 : 34;
+    const H = items.length * row + 8;
+    const { svg, W } = frame(el, H);
+    const left = stack ? 4 : Math.min(d3.max(items, (i) => tw(svg, i.label, 13)) + 14, W * 0.46), right = 58;
+    const x = d3.scaleLinear([0, d3.max(items, (i) => i.value) * 1.05], [left, W - right]);
+    const tip = tooltip(el);
+    items.forEach((it, n) => {
+      const y0 = n * row + 4, bh = stack ? 16 : 20, by = stack ? y0 + 20 : y0 + (row - bh) / 2 - 2;
+      const g = svg.append('g');
+      g.append('text').attr('x', stack ? left : left - 8).attr('y', stack ? y0 + 12 : by + bh / 2 + 4.5)
+        .attr('text-anchor', stack ? 'start' : 'end').attr('font-size', 13).text(it.label);
+      g.append('rect').attr('class', 'bar').attr('x', left).attr('y', by).attr('height', bh).attr('rx', 3)
+        .attr('width', Math.max(2, x(it.value) - left)).style('fill', it.color);
+      g.append('text').attr('x', x(it.value) + 6).attr('y', by + bh / 2 + 4.5).attr('font-size', 12).text(o.fmt(it.value));
+      g.append('rect').attr('x', 0).attr('y', y0 - 2).attr('width', W).attr('height', row).attr('fill', 'transparent')
+        .on('mousemove', (ev) => { const b = el.getBoundingClientRect(); tip.show(ev.clientX - b.left, ev.clientY - b.top, it.label, it.lines || []); })
+        .on('mouseleave', () => tip.hide());
+    });
+  }
+
+  dash.draw('chart-models', (el) => {
+    if (!ready(el, ['overall', 'models'])) return;
+    const p = dash.params(), models = rows('models');
+    const data = rows('overall').filter((r) => r.sample === p.sample && r.variant === p.variant);
+    const items = ORDER.map((k) => data.find((r) => r.model === k)).filter(Boolean).map((r) => ({
+      label: models.find((m) => m.model === r.model).label, value: r.mape, color: barColor(r.model),
+      lines: [{ name: 'Average error', value: pct(r.mape, 2) }, { name: 'Error at the daily peak hour', value: pct(r.peak_mape, 2) },
+        { name: 'Bias (above 0 is too high)', value: d3.format('+.2f')(r.bias) + '%' }, { name: 'Hours scored', value: d3.format(',')(r.hours) }],
+    }));
+    hbar(el, items, { fmt: (v) => pct(v, 1) });
+  });
+
+  dash.draw('chart-shap-groups', (el) => {
+    if (!ready(el, ['shap'])) return;
+    const p = dash.params();
+    const items = rows('shap').filter((r) => r.kind === 'group' && r.variant === p.variant).sort((a, b) => b.share - a.share)
+      .map((r) => ({ label: r.name, value: r.share, color: dash.colors[0], lines: [{ name: 'Share of the total push', value: pct(r.share, 1) }] }));
+    hbar(el, items, { fmt: (v) => pct(v, 0) });
+  });
+  dash.draw('chart-shap-features', (el) => {
+    if (!ready(el, ['shap'])) return;
+    const p = dash.params();
+    const items = rows('shap').filter((r) => r.kind === 'feature' && r.variant === p.variant).sort((a, b) => b.share - a.share)
+      .map((r) => ({ label: r.name, value: r.share, color: dash.colors[0], lines: [{ name: 'Share of the total push', value: pct(r.share, 1) }] }));
+    hbar(el, items, { fmt: (v) => pct(v, 1) });
+  });
+
+  // ---- error by year ----
+  dash.draw('chart-years', (el) => {
+    if (!ready(el, ['by_year', 'models'])) return;
+    const p = dash.params(), models = rows('models');
+    const data = rows('by_year').filter((r) => r.sample === p.sample && r.variant === p.variant);
+    const ms = ORDER.filter((k) => data.some((r) => r.model === k));
+    const years = [...new Set(data.map((r) => r.year))].sort();
+    const short = (k) => models.find((m) => m.model === k).short;
+    const H = 300, top = 12, bottom = 28, left = 42;
+    const { svg, W } = frame(el, H);
+    const right = d3.max(ms, (k) => tw(svg, short(k), 12)) + 18;
+    const x = d3.scaleLinear([years[0], years[years.length - 1]], [left, W - right]);
+    const y = d3.scaleLinear([0, d3.max(data, (d) => d.mape) * 1.08], [H - bottom, top]).nice();
+    grid(svg, x, y, W - right, top, bottom, left, (d) => pct(d, 0));
+    svg.append('g').selectAll('text').data(years).join('text').attr('class', 'mut').attr('x', (d) => x(d)).attr('y', H - 8)
+      .attr('text-anchor', 'middle').text((d) => d3.format('d')(d));
+    const line = d3.line().x((d) => x(d.year)).y((d) => y(d.mape));
+    const ends = [];
+    ms.forEach((k) => {
+      const pts = data.filter((r) => r.model === k).sort((a, b) => a.year - b.year);
+      svg.append('path').datum(pts).attr('fill', 'none').attr('stroke-width', k === 'lightgbm' || k === 'eia_df' ? 2.4 : 1.6)
+        .attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round').style('stroke', k === 'lightgbm' || k === 'eia_df' ? modelColor(k) : 'var(--cds-chart-muted)').attr('d', line);
+      ends.push({ k, y: y(pts[pts.length - 1].mape) + 4 });
+    });
+    spread(ends, 14).forEach((e) => svg.append('text').attr('x', W - right + 8).attr('y', e.y).attr('font-size', 12).text(short(e.k)));
+    const tip = tooltip(el), rule = svg.append('line').attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-reference)').attr('opacity', 0);
+    svg.append('rect').attr('x', left).attr('y', 0).attr('width', W - right - left).attr('height', H).attr('fill', 'transparent')
+      .on('mousemove', (ev) => {
+        const b = el.getBoundingClientRect(), mx = (ev.clientX - b.left) * (W / b.width);
+        const yr = years.reduce((a, c) => (Math.abs(x(c) - mx) < Math.abs(x(a) - mx) ? c : a));
+        rule.attr('x1', x(yr)).attr('x2', x(yr)).attr('opacity', 1);
+        const lines = ms.map((k) => ({ k, v: data.find((r) => r.model === k && r.year === yr).mape })).sort((a, c) => a.v - c.v)
+          .map((l) => ({ color: barColor(l.k), name: short(l.k), value: pct(l.v, 2) }));
+        tip.show(ev.clientX - b.left, ev.clientY - b.top, d3.format('d')(yr), lines);
+      })
+      .on('mouseleave', () => { tip.hide(); rule.attr('opacity', 0); });
+  });
+
+  // ---- by balancing authority ----
+  dash.draw('chart-bas', (el) => {
+    if (!ready(el, ['by_ba'])) return;
+    const p = dash.params(), data = rows('by_ba').filter((r) => r.variant === p.variant);
+    const val = (ba, m) => { const r = data.find((x) => x.ba === ba && x.model === m); return r ? r.mape : null; };
+    const bas = [...new Set(data.map((r) => r.ba))].sort((a, b) => val(a, 'lightgbm') - val(b, 'lightgbm'));
+    const rowH = 26, left = 58, right = 20;
+    const ms = ['lightgbm', 'previous_day_naive', 'eia_df'], names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'EIA forecast' };
+    const lp = legendPlan(el, ms.map((m) => names[m]), 15, left);
+    const top = 18 + lp.rows * 18, H = top + bas.length * rowH + 28;
+    const { svg, W } = frame(el, H);
+    const x = d3.scaleLinear([0, d3.max(data, (d) => d.mape) * 1.05], [left, W - right]).nice();
+    ms.forEach((m, i) => {
+      const yy = 12 + lp.pos[i].row * 18;
+      svg.append('circle').attr('cx', lp.pos[i].x + 5).attr('cy', yy).attr('r', 5).style('fill', barColor(m));
+      svg.append('text').attr('x', lp.pos[i].x + 15).attr('y', yy + 4).attr('font-size', 12).text(names[m]);
+    });
+    svg.append('g').selectAll('line').data(x.ticks(6)).join('line').attr('x1', (d) => x(d)).attr('x2', (d) => x(d))
+      .attr('y1', top - 6).attr('y2', H - 22).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').selectAll('text').data(x.ticks(6)).join('text').attr('class', 'mut').attr('x', (d) => x(d)).attr('y', H - 6)
+      .attr('text-anchor', 'middle').text((d) => pct(d, 0));
+    const tip = tooltip(el);
+    bas.forEach((ba, n) => {
+      const cy = top + n * rowH + rowH / 2, vs = ms.map((m) => val(ba, m)).filter((v) => v !== null);
+      const sel = ba === p.ba;
+      svg.append('rect').attr('class', 'row-hit').attr('x', 0).attr('y', cy - rowH / 2).attr('width', W).attr('height', rowH)
+        .style('fill', sel ? 'var(--cds-chart-grid)' : 'transparent').attr('opacity', sel ? 0.55 : 1)
+        .on('click', () => dash.setParams({ ba }))
+        .on('mousemove', (ev) => {
+          const b = el.getBoundingClientRect(), nm = rows('bas');
+          const full = nm ? (nm.find((q) => q.ba === ba) || {}).name || ba : ba;
+          tip.show(ev.clientX - b.left, ev.clientY - b.top, ba + ' · ' + shortName(full), ms.filter((m) => val(ba, m) !== null)
+            .map((m) => ({ color: barColor(m), name: names[m], value: pct(val(ba, m), 2) })));
+        })
+        .on('mouseleave', () => tip.hide());
+      svg.append('text').attr('x', 8).attr('y', cy + 4.5).attr('font-size', 13).style('pointer-events', 'none').attr('font-weight', sel ? 600 : 400).text(ba);
+      svg.append('line').attr('x1', x(d3.min(vs))).attr('x2', x(d3.max(vs))).attr('y1', cy).attr('y2', cy).style('stroke', 'var(--cds-chart-axis)').style('pointer-events', 'none');
+      ['previous_day_naive', 'eia_df', 'lightgbm'].forEach((m) => {
+        const v = val(ba, m); if (v === null) return;
+        svg.append('circle').attr('cx', x(v)).attr('cy', cy).attr('r', m === 'lightgbm' ? 5.5 : 4.5).style('fill', barColor(m)).style('pointer-events', 'none');
+      });
+    });
+  });
+
+  // ---- storms, heat, holidays ----
+  dash.draw('chart-regimes', (el) => {
+    if (!ready(el, ['regimes'])) return;
+    const p = dash.params();
+    const data = rows('regimes').filter((r) => r.sample === p.sample && r.variant === p.variant);
+    const regs = [...new Set(data.map((r) => r.regime))];
+    const ms = ['lightgbm', 'previous_day_naive', 'eia_df'].filter((m) => data.some((r) => r.model === m));
+    const names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'EIA forecast' };
+    const W0 = Math.max(300, el.clientWidth), stack = W0 < 560, bh = 15, gap = 4, grp = ms.length * (bh + gap) + (stack ? 30 : 14);
+    const lp = legendPlan(el, ms.map((m) => names[m]), 16, stack ? 6 : 0);
+    const top = 14 + lp.rows * 18;
+    const H = top + regs.length * grp + 8;
+    const { svg, W } = frame(el, H);
+    const lab = (r) => r.replace(/ \(.*\)$/, '');
+    const left = stack ? 6 : Math.min(d3.max(regs, (r) => tw(svg, lab(r), 13)) + 14, W * 0.4), right = 52;
+    const x = d3.scaleLinear([0, d3.max(data, (d) => d.mape) * 1.06], [left, W - right]);
+    ms.forEach((m, i) => {
+      const yy = 4 + lp.pos[i].row * 18;
+      svg.append('rect').attr('x', lp.pos[i].x).attr('y', yy).attr('width', 11).attr('height', 11).attr('rx', 2).style('fill', barColor(m));
+      svg.append('text').attr('x', lp.pos[i].x + 16).attr('y', yy + 10).attr('font-size', 12).text(names[m]);
+    });
+    const tip = tooltip(el);
+    regs.forEach((rg, n) => {
+      const y0 = top + n * grp, hrs = data.find((r) => r.regime === rg).hours;
+      svg.append('text').attr('x', stack ? left : left - 8).attr('y', stack ? y0 + 12 : y0 + (ms.length * (bh + gap)) / 2 + 3)
+        .attr('text-anchor', stack ? 'start' : 'end').attr('font-size', 13).text(lab(rg));
+      ms.forEach((m, i) => {
+        const r = data.find((q) => q.regime === rg && q.model === m); if (!r) return;
+        const by = y0 + (stack ? 20 : 0) + i * (bh + gap);
+        svg.append('rect').attr('class', 'bar').attr('x', left).attr('y', by).attr('height', bh).attr('rx', 3).attr('width', Math.max(2, x(r.mape) - left)).style('fill', barColor(m));
+        svg.append('text').attr('x', x(r.mape) + 6).attr('y', by + bh - 3).attr('font-size', 11).text(pct(r.mape, 1));
+      });
+      svg.append('rect').attr('x', 0).attr('y', y0 - 4).attr('width', W).attr('height', grp).attr('fill', 'transparent')
+        .on('mousemove', (ev) => {
+          const b = el.getBoundingClientRect();
+          tip.show(ev.clientX - b.left, ev.clientY - b.top, rg, ms.map((m) => ({ color: barColor(m), name: names[m], value: pct(data.find((q) => q.regime === rg && q.model === m).mape, 2) }))
+            .concat([{ name: 'Hours scored', value: d3.format(',')(hrs) }]));
+        })
+        .on('mouseleave', () => tip.hide());
+    });
+  });
+
+  // ---- one week, hour by hour ----
+  dash.draw('chart-hourly', (el) => {
+    if (!ready(el, ['hourly'])) return;
+    const p = dash.params();
+    const data = rows('hourly').filter((r) => r.ba === p.ba && r.window === p.window).sort((a, b) => a.i - b.i);
+    if (!data.length) { el.replaceChildren(); return; }
+    const kA = p.variant === 'A' ? 'lightgbm_a' : 'lightgbm_b';
+    const series = [
+      { key: 'actual', name: 'Actual demand', color: 'var(--color-fg)', w: 2.4 },
+      { key: kA, name: 'LightGBM', color: dash.colors[0], w: 2 },
+      { key: 'previous_day', name: 'Yesterday, same hour', color: 'var(--cds-chart-muted)', w: 1.6, dash: '5 4' },
+      { key: 'eia_forecast', name: 'EIA day-ahead forecast', color: dash.colors[1], w: 1.8 },
+    ];
+    const bottom = 28, left = 58, right = 14;
+    const lp = legendPlan(el, series.map((s) => s.name), 23, left);
+    const top = 36 + lp.rows * 18, H = top + 270 + bottom;
+    const { svg, W } = frame(el, H);
+    const all = series.flatMap((s) => data.map((d) => d[s.key])).filter((v) => v !== null);
+    const x = d3.scaleLinear([0, data.length - 1], [left, W - right]);
+    const y = d3.scaleLinear([d3.min(all) * 0.96, d3.max(all) * 1.03], [H - bottom, top]).nice();
+    grid(svg, x, y, W - right, top, bottom, left, (d) => d3.format(',')(d));
+    const days = data.filter((d, n) => n % 24 === 0);
+    svg.append('g').selectAll('text').data(days).join('text').attr('class', 'mut').attr('x', (d) => x(d.i)).attr('y', H - 8).attr('text-anchor', 'start').text((d) => d.local.slice(5, 10));
+    svg.append('g').selectAll('line').data(days).join('line').attr('x1', (d) => x(d.i)).attr('x2', (d) => x(d.i)).attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('text').attr('class', 'mut').attr('x', 2).attr('y', 12).text('Megawatt-hours per hour');
+    series.forEach((s, i) => {
+      const lx = lp.pos[i].x, yy = 30 + lp.pos[i].row * 18;
+      svg.append('line').attr('x1', lx).attr('x2', lx + 18).attr('y1', yy).attr('y2', yy).attr('stroke-width', s.w).attr('stroke-dasharray', s.dash || null).style('stroke', s.color);
+      svg.append('text').attr('x', lx + 23).attr('y', yy + 4).attr('font-size', 12).text(s.name);
+    });
+    series.forEach((s) => {
+      const ln = d3.line().defined((d) => d[s.key] !== null).x((d) => x(d.i)).y((d) => y(d[s.key]));
+      svg.append('path').datum(data).attr('fill', 'none').attr('stroke-width', s.w).attr('stroke-dasharray', s.dash || null)
+        .attr('stroke-linejoin', 'round').style('stroke', s.color).attr('d', ln);
+    });
+    const tip = tooltip(el), rule = svg.append('line').attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-reference)').attr('opacity', 0);
+    svg.append('rect').attr('x', left).attr('y', top).attr('width', W - right - left).attr('height', H - top - bottom).attr('fill', 'transparent')
+      .on('mousemove', (ev) => {
+        const b = el.getBoundingClientRect(), mx = (ev.clientX - b.left) * (W / b.width);
+        const i = Math.max(0, Math.min(data.length - 1, Math.round(x.invert(mx)))), d = data[i];
+        rule.attr('x1', x(i)).attr('x2', x(i)).attr('opacity', 1);
+        tip.show(ev.clientX - b.left, ev.clientY - b.top, d.local, series.map((s) => ({ color: s.color, name: s.name, value: d[s.key] === null ? 'no value' : d3.format(',')(d[s.key]) })));
+      })
+      .on('mouseleave', () => { tip.hide(); rule.attr('opacity', 0); });
+  });
+
+  // ---- error by month for the chosen BA ----
+  dash.draw('chart-monthly', (el) => {
+    if (!ready(el, ['monthly'])) return;
+    const p = dash.params(), parse = d3.utcParse('%Y-%m');
+    const data = rows('monthly').filter((r) => r.ba === p.ba && r.variant === p.variant).map((r) => ({ ...r, t: parse(r.month) }));
+    const ms = ['lightgbm', 'previous_day_naive', 'eia_df'].filter((m) => data.some((r) => r.model === m));
+    const names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'EIA forecast' };
+    const H = 260, top = 12, bottom = 28, left = 42;
+    const { svg, W } = frame(el, H);
+    const right = d3.max(ms, (m) => tw(svg, names[m], 12)) + 18;
+    const x = d3.scaleUtc(d3.extent(data, (d) => d.t), [left, W - right]);
+    const y = d3.scaleLinear([0, d3.max(data, (d) => d.mape) * 1.08], [H - bottom, top]).nice();
+    grid(svg, x, y, W - right, top, bottom, left, (d) => pct(d, 0));
+    svg.append('g').selectAll('text').data(x.ticks(d3.utcYear.every(1))).join('text').attr('class', 'mut').attr('x', (d) => x(d)).attr('y', H - 8)
+      .attr('text-anchor', 'middle').text((d) => d3.utcFormat('%Y')(d));
+    const line = d3.line().x((d) => x(d.t)).y((d) => y(d.mape));
+    const ends = [];
+    ms.forEach((m) => {
+      const pts = data.filter((r) => r.model === m).sort((a, b) => a.t - b.t);
+      svg.append('path').datum(pts).attr('fill', 'none').attr('stroke-width', m === 'previous_day_naive' ? 1.3 : 1.9).attr('stroke-linejoin', 'round').style('stroke', barColor(m)).attr('d', line);
+      ends.push({ m, y: y(pts[pts.length - 1].mape) + 4 });
+    });
+    spread(ends, 14).forEach((e) => svg.append('text').attr('x', W - right + 8).attr('y', e.y).attr('font-size', 12).text(names[e.m]));
+    const tip = tooltip(el), rule = svg.append('line').attr('y1', top).attr('y2', H - bottom).style('stroke', 'var(--cds-chart-reference)').attr('opacity', 0);
+    const months = [...new Set(data.map((d) => d.month))].sort();
+    svg.append('rect').attr('x', left).attr('y', 0).attr('width', W - right - left).attr('height', H).attr('fill', 'transparent')
+      .on('mousemove', (ev) => {
+        const b = el.getBoundingClientRect(), mx = (ev.clientX - b.left) * (W / b.width), t = x.invert(mx);
+        const mo = months.reduce((a, c) => (Math.abs(parse(c) - t) < Math.abs(parse(a) - t) ? c : a));
+        rule.attr('x1', x(parse(mo))).attr('x2', x(parse(mo))).attr('opacity', 1);
+        tip.show(ev.clientX - b.left, ev.clientY - b.top, d3.utcFormat('%b %Y')(parse(mo)),
+          ms.map((m) => ({ m, r: data.find((q) => q.model === m && q.month === mo) })).filter((l) => l.r).map((l) => ({ color: barColor(l.m), name: names[l.m], value: pct(l.r.mape, 2) })));
+      })
+      .on('mouseleave', () => { tip.hide(); rule.attr('opacity', 0); });
+  });
+})();
+</script>
