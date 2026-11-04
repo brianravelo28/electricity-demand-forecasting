@@ -181,6 +181,23 @@ Produced by `scripts/run_evaluation.py` (outputs in the git-ignored `data/eval/`
 
   What this supports: the 10:00 to 11:00 morning window is where five of the six markets close, so 10:00 local is a representative time of day. What it does not support: that a forecast with a 10:00 information cutoff was feasible everywhere. It is exactly at the close for ERCOT and CAISO, 30 minutes before ISO-NE's close, later than NYISO's 5:00 ET, and for MISO (whose zone here is Central) 10:00 CT is 11:00 EPT, after the 10:30 EPT close. Only 6 of the 20 BAs sit in these markets. SWPP was not checked, and the other 13 are utility BAs for which no such deadline was found. EIA's forecast has no common timing, so its information set cannot be matched to ours exactly. If a BA builds its forecast before its market closes, EIA's information was no later than ours for ERCOT and CAISO, which would make our finding that EIA's forecast beats variant A LightGBM conservative; that is an inference, not a checked fact. Source caveats: all six are cited to current manuals, protocols or tariffs (dated 2025 to 2026). The CAISO time is from its Business Practice Manual and not the tariff text, which does not state a clock time. Operators can extend a deadline after an outage, so these are scheduled times.
 
+### What LightGBM relies on (SHAP)
+
+`scripts/run_shap.py` uses LightGBM's built-in tree SHAP. One model is fit on origin dates through 2024 (the walk-forward rule), then explains its forecasts for 60,000 randomly drawn hours of 2025, so the rows are out of sample and cover every season. Values are the mean absolute contribution to a forecast, as a percentage of the BA's average demand (demand and the target are scaled by the training mean). Results are in `data/eval/shap_A.csv` and `shap_B.csv`.
+
+| Group | Variant A | Variant B |
+| --- | --- | --- |
+| Recent demand and lags (10 features) | 17.0 (60%) | 14.5 (45%) |
+| Calendar and holidays (11 features) | 5.6 (20%) | 5.4 (17%) |
+| Weather known at the origin (5 features) | 5.0 (18%) | 1.5 (5%) |
+| Target-day weather (8 features, B only) | n/a | 9.0 (28%) |
+| Balancing authority | 0.8 (3%) | 1.9 (6%) |
+
+- Yesterday's demand at the same hour (`lag_day`) is the single largest feature in both variants (9.2 in A, 8.8 in B), well ahead of the next ones: last week's same hour (2.8 in A), temperature at the origin (2.5 in A), and in B the target hour's temperature (4.6). The model works as a correction to the previous-day naive forecast using weather and calendar, which is why it beats that baseline.
+- In variant B, weather is 33% of the attribution (target-day 28%, origin-time 5%), against 18% in variant A. This matches the gap between the two variants' accuracy: perfect target-day weather is what moves LightGBM from 5.2% to 3.3%.
+- The BA identity matters little (3% in A, 6% in B), so one global model is not leaning on BA-specific memorization.
+- Read the groups before the single features: demand lags are correlated, so SHAP splits credit between them. SHAP shows what the model uses, not what causes demand. This is one model and one year; the ranking of groups was not checked across years. In variant B the five origin-time weather features are still in the model and are counted in their own row.
+
 ## Publishing rules
 
 Under the EIA API terms, the dashboard may display the data but may not claim EIA as the source of modified content.
@@ -221,7 +238,7 @@ These limits go in the README as stated facts, because naming them is part of wh
 - [x] Add the demand cleaning rule after the first evaluation showed impossible EIA values (`electricity/cleaning.py`, `tests/test_cleaning.py`; checks in `scripts/check_cleaning.py` and `scripts/run_sensitivity.py`)
 - [x] Run the full evaluation for variants A and B on cleaned data (results section above)
 - [x] Settle the forecast origin (10:00 local kept; 06:00 and 12:00 tested, see Results)
-- [ ] SHAP importance for LightGBM
+- [x] SHAP importance for LightGBM (`scripts/run_shap.py`, see Results)
 - [x] Look into why error rises in 2025 and 2026 (done from saved predictions; SRP and EIA forecast degradation explain most of it, see Results)
 - [ ] Try scaling demand by a recent level instead of the training mean, to reduce the load-growth bias (optional)
 - [x] Check SRP's net generation and interchange (`NG`, `TI`): its 2026 demand swings track swings in net exports (see Results)
