@@ -54,7 +54,7 @@ Five models are compared, so that any gain from machine learning is measured aga
 | LightGBM | Demand lags known at the origin, rolling means, calendar, holidays, weather | Tests whether extra flexibility adds accuracy; SHAP shows what drives it |
 
 - **EIA day-ahead forecast (`DF`):** a benchmark, not an input, because it is published by 11:00 ET, after the 10:00 origin. For 8 BAs EIA says its forecast is not meaningfully comparable to actual demand, so exclude those from this comparison. Checked on 2023 for the 20 selected BAs: the forecast is rarely missing (SRP 4.2%, FPL 0.6%) and almost never equals actual demand (under 0.4% of hours), so it was not overwritten with actuals. Its mean absolute percentage error is 2.0% to 5.6% for 16 BAs, against 5.8% to 13.5% for the seasonal-naive baseline. FPC (22.6%, biased low by 22.6%), PSCO (16.5%, biased high by 10.0%) and LGEE (8.0%, biased low by 7.6%) are far off their peers and are excluded from the benchmark comparison.
-- **Weather, two variants:** (A) weather observed up to the origin only; (B) observed weather for the target day, labeled as a perfect-forecast upper bound, since a live system would use weather forecasts. Report both, never mixed.
+- **Weather, two variants:** (A) weather observed up to the origin only, that is, up to 09:00 on the day the forecast is made; (B) also the weather observed on the target day, the day being forecast, which starts after the origin. B is labeled a perfect-forecast upper bound, since a live system would use weather forecasts. For example, a forecast made Tuesday at 10:00 for Wednesday: A sees weather through Tuesday 09:00, B also sees Wednesday's actual weather. Report both, never mixed.
 
 ## Target and feature construction (pseudocode)
 
@@ -134,7 +134,7 @@ Leakage checklist:
 
 ## Results (cleaned data, 20 BAs, quarterly refits, test origins 2021-01-01 to 2026-11-01)
 
-Produced by `scripts/run_evaluation.py` (outputs in the git-ignored `data/eval/`). Mean absolute percentage error over hourly forecasts, each model scored on the same rows. Variant A uses weather observed up to the origin; variant B uses observed weather for the target day and is an upper bound, not something a live system has.
+Produced by `scripts/run_evaluation.py` (outputs in the git-ignored `data/eval/`). Mean absolute percentage error over hourly forecasts, each model scored on the same rows. Variant A uses weather observed up to the origin (09:00 on the day the forecast is made); variant B also uses the weather observed on the target day, the day being forecast, and is an upper bound, not something a live system has.
 
 | Model | A: all 20 BAs | B: all 20 BAs | A: 17 BAs with EIA forecast | B: 17 BAs with EIA forecast |
 | --- | --- | --- | --- | --- |

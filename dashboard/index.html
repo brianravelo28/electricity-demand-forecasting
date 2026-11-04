@@ -74,6 +74,8 @@
     </div>
   </section>
 
+  <p class="note" id="weather-explainer"><b>What the weather switch means.</b> Take a forecast made on Tuesday at 10:00 for Wednesday’s 24 hours. “Known at forecast time” lets the model see weather up to Tuesday 09:00, the day the forecast is made, which is all a real forecaster would have. “Perfect target-day weather” also shows it the weather that actually happens on Wednesday, the day being forecast. Nobody has that at 10:00 on Tuesday, so treat those results as a ceiling, not a score a live system could reach.</p>
+
   <section id="errors" class="ed-card">
     <h2>How big are the misses?</h2>
     <p class="note">Average size of the miss as a share of actual demand, over every hour of the next day (mean absolute percentage error). Lower is better. Every model is scored on the same hours.</p>
@@ -128,7 +130,7 @@
       <li><b>Baselines.</b> The same hour last week; the same hour yesterday; the average of the last four same weekdays; and a regression on hour of week, holidays and heating and cooling temperatures.</li>
       <li><b>LightGBM.</b> One model shared by all BAs, with demand scaled by each BA’s average over the training window. It uses recent demand and lags, the calendar and weather.</li>
       <li><b>Validation.</b> Walk-forward: trained on 2019 to 2020 first, then refit every quarter on everything earlier, and tested on the next quarter. Training stops two days before each test quarter begins.</li>
-      <li><b>Weather.</b> Observed temperature, dew point and wind at airports near each BA’s load centers. “Known at forecast time” stops at 09:00 on the forecast day. “Perfect target-day weather” uses the next day’s observed weather.</li>
+      <li><b>Weather.</b> Observed temperature, dew point and wind at airports near each BA’s load centers. “Known at forecast time” stops at 09:00 on the day the forecast is made. “Perfect target-day weather” adds the weather actually observed on the day being forecast, the day after, which a live forecaster would not have at 10:00.</li>
       <li><b>Cleaning.</b> The raw hourly series contain impossible values, such as a reading of about 2.1 billion megawatt-hours in PJM. A reading is set to missing if it is not positive or is outside 0.4 to 2.0 times the median of the previous 15 days. Raw data are untouched.</li>
       <li><b>Day-ahead timing.</b> Day-ahead markets close their bids between 05:00 and 11:00 local time, mostly around 10:00 to 11:00, so the 10:00 forecast time is typical but not guaranteed to be early enough for every BA. Moving it four hours earlier or two hours later changes LightGBM’s error by less than half a point and changes no ranking.</li>
     </ul>

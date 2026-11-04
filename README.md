@@ -23,7 +23,7 @@ Raw data comes from the ingestion scripts in `scripts/` (see `docs/PLANNING.md`)
 .venv\Scripts\python scripts\run_evaluation.py --variant B
 ```
 
-Variant A uses weather observed up to the forecast time. Variant B uses observed weather for the target day and is an upper bound, not something a live system has. Each run takes about 20 to 30 minutes.
+Variant A uses weather observed up to the forecast time (09:00 on the day the forecast is made). Variant B also uses the weather observed on the target day, the day being forecast, and is an upper bound, not something a live system has. For a forecast made Tuesday at 10:00 for Wednesday, A sees weather through Tuesday 09:00 and B also sees Wednesday's actual weather. Each run takes about 20 to 30 minutes.
 
 ## Dashboard
 
