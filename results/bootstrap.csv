@@ -1,0 +1,65 @@
+variant,comparison,sample,period,hours,weeks,difference_points,ci_low,ci_high,interval_excludes_zero
+A,LightGBM minus yesterday's demand,20 BAs,2021 to 2026,1015245,306,-2.229,-2.321,-2.141,True
+A,LightGBM minus regression,20 BAs,2021 to 2026,1015245,306,-3.584,-3.723,-3.451,True
+A,LightGBM minus ridge,20 BAs,2021 to 2026,1013138,306,-0.806,-0.857,-0.754,True
+A,LightGBM minus ridge,20 BAs,2021,173565,53,-0.778,-0.896,-0.646,True
+A,LightGBM minus ridge,20 BAs,2022,173402,53,-0.838,-0.946,-0.728,True
+A,LightGBM minus ridge,20 BAs,2023,172865,53,-0.708,-0.822,-0.591,True
+A,LightGBM minus ridge,20 BAs,2024,173639,53,-0.817,-0.948,-0.691,True
+A,LightGBM minus ridge,20 BAs,2025,174137,53,-0.912,-1.046,-0.785,True
+A,LightGBM minus ridge,20 BAs,2026,145530,45,-0.775,-0.93,-0.62,True
+A,Ridge minus yesterday's demand,20 BAs,2021 to 2026,1013138,306,-1.424,-1.511,-1.337,True
+A,LightGBM minus LightGBM without weather,20 BAs,2021 to 2026,1015245,306,-0.653,-0.697,-0.612,True
+A,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2021 to 2026,856669,306,1.238,1.121,1.358,True
+A,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2021,147744,53,1.776,1.577,1.972,True
+A,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2022,143202,53,1.671,1.448,1.902,True
+A,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2023,147475,53,1.495,1.343,1.649,True
+A,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2024,147959,53,1.363,1.158,1.573,True
+A,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2025,147596,53,0.757,0.529,0.983,True
+A,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2026,122693,45,0.205,-0.297,0.635,False
+A,Ridge minus EIA forecast,17 BAs with an EIA forecast,2021 to 2026,855176,306,2.032,1.908,2.153,True
+A,Ridge minus EIA forecast,17 BAs with an EIA forecast,2021,147704,53,2.545,2.346,2.737,True
+A,Ridge minus EIA forecast,17 BAs with an EIA forecast,2022,143127,53,2.501,2.247,2.776,True
+A,Ridge minus EIA forecast,17 BAs with an EIA forecast,2023,147340,53,2.179,2.002,2.353,True
+A,Ridge minus EIA forecast,17 BAs with an EIA forecast,2024,147397,53,2.151,1.935,2.382,True
+A,Ridge minus EIA forecast,17 BAs with an EIA forecast,2025,147433,53,1.655,1.405,1.899,True
+A,Ridge minus EIA forecast,17 BAs with an EIA forecast,2026,122175,45,0.993,0.523,1.375,True
+A,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2021 to 2026,810873,306,1.222,1.095,1.344,True
+A,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2021,139163,53,1.702,1.515,1.908,True
+A,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2022,138527,53,1.661,1.437,1.897,True
+A,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2023,139141,53,1.429,1.263,1.597,True
+A,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2024,139499,53,1.343,1.138,1.557,True
+A,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2025,138914,53,0.724,0.475,0.955,True
+A,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2026,115629,45,0.325,-0.201,0.775,False
+B,LightGBM minus yesterday's demand,20 BAs,2021 to 2026,1015026,306,-4.09,-4.201,-3.967,True
+B,LightGBM minus regression,20 BAs,2021 to 2026,1015026,306,-4.37,-4.508,-4.235,True
+B,LightGBM minus ridge,20 BAs,2021 to 2026,1012071,306,-1.435,-1.488,-1.384,True
+B,LightGBM minus ridge,20 BAs,2021,173496,53,-1.58,-1.701,-1.457,True
+B,LightGBM minus ridge,20 BAs,2022,173326,53,-1.529,-1.648,-1.412,True
+B,LightGBM minus ridge,20 BAs,2023,172776,53,-1.378,-1.494,-1.267,True
+B,LightGBM minus ridge,20 BAs,2024,173331,53,-1.359,-1.47,-1.242,True
+B,LightGBM minus ridge,20 BAs,2025,173876,53,-1.349,-1.484,-1.208,True
+B,LightGBM minus ridge,20 BAs,2026,145266,45,-1.415,-1.594,-1.243,True
+B,Ridge minus yesterday's demand,20 BAs,2021 to 2026,1012071,306,-2.654,-2.765,-2.54,True
+B,LightGBM minus LightGBM without weather,20 BAs,2021 to 2026,1015026,306,-2.514,-2.605,-2.417,True
+B,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2021 to 2026,856588,306,-0.541,-0.644,-0.449,True
+B,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2021,147737,53,-0.244,-0.349,-0.147,True
+B,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2022,143199,53,-0.319,-0.429,-0.207,True
+B,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2023,147465,53,-0.209,-0.294,-0.122,True
+B,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2024,147861,53,-0.279,-0.383,-0.169,True
+B,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2025,147782,53,-0.747,-0.905,-0.599,True
+B,LightGBM minus EIA forecast,17 BAs with an EIA forecast,2026,122544,45,-1.625,-2.162,-1.215,True
+B,Ridge minus EIA forecast,17 BAs with an EIA forecast,2021 to 2026,854351,306,0.85,0.742,0.953,True
+B,Ridge minus EIA forecast,17 BAs with an EIA forecast,2021,147657,53,1.303,1.153,1.458,True
+B,Ridge minus EIA forecast,17 BAs with an EIA forecast,2022,143081,53,1.205,1.047,1.37,True
+B,Ridge minus EIA forecast,17 BAs with an EIA forecast,2023,147260,53,1.112,0.974,1.261,True
+B,Ridge minus EIA forecast,17 BAs with an EIA forecast,2024,147173,53,1.026,0.855,1.189,True
+B,Ridge minus EIA forecast,17 BAs with an EIA forecast,2025,147220,53,0.508,0.279,0.739,True
+B,Ridge minus EIA forecast,17 BAs with an EIA forecast,2026,121960,45,-0.235,-0.658,0.117,False
+B,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2021 to 2026,810820,306,-0.561,-0.668,-0.47,True
+B,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2021,139156,53,-0.308,-0.413,-0.209,True
+B,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2022,138524,53,-0.339,-0.448,-0.225,True
+B,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2023,139133,53,-0.25,-0.343,-0.148,True
+B,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2024,139416,53,-0.308,-0.422,-0.196,True
+B,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2025,139099,53,-0.812,-0.99,-0.653,True
+B,LightGBM minus EIA forecast,"16 BAs with an EIA forecast, without SRP",2026,115492,45,-1.512,-2.056,-1.067,True

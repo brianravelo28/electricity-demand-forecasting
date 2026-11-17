@@ -1,0 +1,16 @@
+thresholds,model,hours,mape,change_from_used
+0.4/2.0 (used),seasonal_naive,1015245,9.4809,0.0
+0.4/2.0 (used),previous_day_naive,1015245,7.412,0.0
+0.4/2.0 (used),same_day_avg,1015245,9.1704,0.0
+0.4/2.0 (used),regression,1015245,8.7672,0.0
+0.4/2.0 (used),lightgbm,1015245,5.1833,0.0
+0.3/3.0,seasonal_naive,1015613,9.4928,0.0119
+0.3/3.0,previous_day_naive,1015613,7.4217,0.0097
+0.3/3.0,same_day_avg,1015613,9.1807,0.0103
+0.3/3.0,regression,1015613,8.7741,0.0069
+0.3/3.0,lightgbm,1015613,5.1977,0.0144
+0.5/1.8,seasonal_naive,1014062,9.4545,-0.0263
+0.5/1.8,previous_day_naive,1014062,7.397,-0.015
+0.5/1.8,same_day_avg,1014062,9.1482,-0.0222
+0.5/1.8,regression,1014062,8.7547,-0.0125
+0.5/1.8,lightgbm,1014062,5.1777,-0.0056

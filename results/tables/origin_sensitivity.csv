@@ -1,0 +1,16 @@
+origin_hour,sample,model,hours,mape
+6,all_20,lightgbm,494371,5.7681
+6,all_20,previous_day_naive,494371,7.9646
+10,all_20,lightgbm,494371,5.3409
+10,all_20,previous_day_naive,494371,7.4939
+12,all_20,lightgbm,494371,5.0967
+12,all_20,previous_day_naive,494371,7.2602
+6,eia_17,lightgbm,417768,5.5676
+6,eia_17,previous_day_naive,417768,7.7109
+6,eia_17,eia_df,417768,4.3276
+10,eia_17,lightgbm,417768,5.1373
+10,eia_17,previous_day_naive,417768,7.2466
+10,eia_17,eia_df,417768,4.3276
+12,eia_17,lightgbm,417768,4.9039
+12,eia_17,previous_day_naive,417768,7.0149
+12,eia_17,eia_df,417768,4.3276

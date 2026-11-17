@@ -1,0 +1,72 @@
+variant,kind,name,mean_abs_shap_pct_of_ba_demand,share_pct
+A,group,Recent demand and lags,16.9779,59.8847
+A,group,Calendar and holidays,5.5819,19.6887
+A,group,Weather known at the forecast time,4.9738,17.5438
+A,group,Which balancing authority,0.8173,2.8828
+A,feature,lag_day,9.239,32.5879
+A,feature,lag_week_1,2.8381,10.0105
+A,feature,temp_last,2.4661,8.6985
+A,feature,weekday,1.7934,6.3256
+A,feature,lag_week_2,1.419,5.0051
+A,feature,doy_cos,1.3341,4.7055
+A,feature,hour_local,1.0074,3.5535
+A,feature,demand_last,0.9153,3.2286
+A,feature,ba,0.8173,2.8828
+A,feature,dew_last,0.8099,2.8567
+A,feature,temp_change_3h,0.7776,2.7429
+A,feature,demand_mean_168h,0.6965,2.4566
+A,feature,lag_week_3,0.673,2.3737
+A,feature,horizon,0.6148,2.1686
+A,feature,temp_mean_24h,0.611,2.1551
+A,feature,lag_week_4,0.5871,2.071
+A,feature,doy_sin,0.49,1.7282
+A,feature,wind_last,0.3092,1.0907
+A,feature,demand_max_24h,0.2578,0.9093
+A,feature,demand_change_3h,0.2305,0.813
+A,feature,is_holiday,0.145,0.5114
+A,feature,demand_mean_24h,0.1216,0.429
+A,feature,month,0.0982,0.3462
+A,feature,lag_day_age,0.042,0.1481
+A,feature,day_before_holiday,0.0333,0.1175
+A,feature,day_after_holiday,0.0221,0.0781
+A,feature,hours_in_day,0.0017,0.006
+B,group,Recent demand and lags,14.4547,44.8221
+B,group,Calendar and holidays,5.3962,16.733
+B,group,Weather known at the forecast time,1.5461,4.7941
+B,group,Target-day weather (variant B only),8.9512,27.7563
+B,group,Which balancing authority,1.9009,5.8946
+B,feature,lag_day,8.8422,27.4183
+B,feature,temp_target,4.5793,14.1996
+B,feature,lag_week_1,1.9536,6.0578
+B,feature,weekday,1.9045,5.9057
+B,feature,ba,1.9009,5.8946
+B,feature,dew_target,1.3944,4.3238
+B,feature,hour_local,1.3916,4.3151
+B,feature,temp_day_max,1.2142,3.7651
+B,feature,temp_mean_24h,1.0629,3.2958
+B,feature,lag_week_2,1.0405,3.2263
+B,feature,demand_last,0.9786,3.0344
+B,feature,horizon,0.8762,2.7168
+B,feature,cdd_day,0.547,1.6962
+B,feature,temp_day_mean,0.5148,1.5963
+B,feature,doy_cos,0.4804,1.4897
+B,feature,demand_mean_168h,0.4479,1.3889
+B,feature,lag_week_3,0.4033,1.2505
+B,feature,lag_week_4,0.3237,1.0036
+B,feature,doy_sin,0.3111,0.9646
+B,feature,hdd_day,0.2914,0.9036
+B,feature,temp_day_min,0.2678,0.8305
+B,feature,temp_change_3h,0.2391,0.7413
+B,feature,demand_change_3h,0.2089,0.6477
+B,feature,demand_max_24h,0.1801,0.5586
+B,feature,is_holiday,0.164,0.5084
+B,feature,month,0.1486,0.4608
+B,feature,wind_target,0.1423,0.4411
+B,feature,dew_last,0.1208,0.3745
+B,feature,demand_mean_24h,0.0761,0.2359
+B,feature,temp_last,0.0731,0.2268
+B,feature,lag_day_age,0.0643,0.1994
+B,feature,wind_last,0.0502,0.1558
+B,feature,day_before_holiday,0.0384,0.1191
+B,feature,day_after_holiday,0.0167,0.0518
+B,feature,hours_in_day,0.0005,0.0014

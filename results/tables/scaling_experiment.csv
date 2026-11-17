@@ -1,0 +1,103 @@
+variant,measure,group,training_mean_scaling,recent_week_scaling
+A,hours,all,1020049.0,1020049.0
+A,mape,all,5.1854,5.1929
+A,bias,all,-0.3717,0.4672
+A,peak_hour_mape,all,6.3305,6.0409
+A,mape,Winter Storm Uri (2021-02-13 to 02-19),6.3817,5.9495
+A,mape,Winter Storm Elliott (2022-12-21 to 12-27),8.3377,7.9555
+A,mape,"Texas heat, ERCOT (2023-06-20 to 09-15)",5.3111,3.5317
+A,mape,Holidays and adjacent days,5.6337,5.6904
+A,mape,Calm (none of the above),5.1307,5.1395
+A,mape,BA AZPS,5.8363,5.6076
+A,bias,BA AZPS,-1.1242,0.5763
+A,mape,BA BPAT,3.475,3.4332
+A,bias,BA BPAT,-0.7544,0.0857
+A,mape,BA CISO,3.8395,3.7985
+A,bias,BA CISO,-0.4284,0.0958
+A,mape,BA CPLE,7.9181,8.0736
+A,bias,BA CPLE,0.6169,1.0581
+A,mape,BA DUK,6.1164,6.2514
+A,bias,BA DUK,-0.2283,0.5763
+A,mape,BA ERCO,4.9716,4.7317
+A,bias,BA ERCO,-1.7553,0.409
+A,mape,BA FPC,6.5548,6.6626
+A,bias,BA FPC,-0.061,0.8365
+A,mape,BA FPL,5.4989,5.3719
+A,bias,BA FPL,-1.0183,0.4405
+A,mape,BA ISNE,6.4739,6.5441
+A,bias,BA ISNE,0.9957,0.8198
+A,mape,BA LGEE,6.613,6.7086
+A,bias,BA LGEE,-1.0374,0.7035
+A,mape,BA MISO,3.3675,3.4376
+A,bias,BA MISO,-0.3018,0.2069
+A,mape,BA NEVP,4.0784,4.0253
+A,bias,BA NEVP,-0.519,0.2763
+A,mape,BA NYIS,4.4738,4.6624
+A,bias,BA NYIS,0.6896,0.5845
+A,mape,BA PACE,3.779,3.6901
+A,bias,BA PACE,-0.8483,0.0074
+A,mape,BA PJM,4.1257,4.3124
+A,bias,BA PJM,-0.4646,0.5685
+A,mape,BA PSCO,5.5949,5.5089
+A,bias,BA PSCO,0.7797,0.4344
+A,mape,BA SOCO,5.0803,5.1962
+A,bias,BA SOCO,-0.0296,0.4379
+A,mape,BA SRP,6.0161,5.926
+A,bias,BA SRP,-0.3339,0.6873
+A,mape,BA SWPP,4.2633,4.171
+A,bias,BA SWPP,-1.0715,0.1966
+A,mape,BA TVA,5.6458,5.7535
+A,bias,BA TVA,-0.548,0.3431
+A,mape,17 BAs with an EIA forecast,4.992,4.9953
+A,mape,EIA forecast on the same 17 BAs,3.7544,3.7544
+B,hours,all,1020049.0,1020049.0
+B,mape,all,3.3248,3.3368
+B,bias,all,-0.9985,0.2567
+B,peak_hour_mape,all,4.0664,3.7382
+B,mape,Winter Storm Uri (2021-02-13 to 02-19),3.8415,4.8006
+B,mape,Winter Storm Elliott (2022-12-21 to 12-27),5.0486,5.5555
+B,mape,"Texas heat, ERCOT (2023-06-20 to 09-15)",3.1911,2.3657
+B,mape,Holidays and adjacent days,3.716,3.8255
+B,mape,Calm (none of the above),3.283,3.2846
+B,mape,BA AZPS,4.6009,4.2531
+B,bias,BA AZPS,-2.3147,0.6026
+B,mape,BA BPAT,2.6962,2.4166
+B,bias,BA BPAT,-1.4181,-0.1003
+B,mape,BA CISO,3.374,3.3687
+B,bias,BA CISO,-0.4246,0.0851
+B,mape,BA CPLE,3.9643,4.4938
+B,bias,BA CPLE,-0.1228,0.5629
+B,mape,BA DUK,2.7567,3.1238
+B,bias,BA DUK,-1.0348,0.1997
+B,mape,BA ERCO,3.5552,2.5926
+B,bias,BA ERCO,-2.9718,0.4094
+B,mape,BA FPC,3.688,3.9208
+B,bias,BA FPC,-0.8167,0.4918
+B,mape,BA FPL,3.7939,3.586
+B,bias,BA FPL,-1.7909,0.1558
+B,mape,BA ISNE,4.0583,4.3635
+B,bias,BA ISNE,0.7032,0.4917
+B,mape,BA LGEE,3.9268,3.7815
+B,bias,BA LGEE,-2.2963,0.1698
+B,mape,BA MISO,2.0413,2.1839
+B,bias,BA MISO,-0.5795,0.0801
+B,mape,BA NEVP,2.6675,2.6884
+B,bias,BA NEVP,-1.11,0.277
+B,mape,BA NYIS,2.8792,3.1188
+B,bias,BA NYIS,0.5539,0.3171
+B,mape,BA PACE,3.1912,3.0373
+B,bias,BA PACE,-1.338,-0.2274
+B,mape,BA PJM,2.3141,2.5181
+B,bias,BA PJM,-1.0551,0.2697
+B,mape,BA PSCO,4.1847,4.0637
+B,bias,BA PSCO,0.5388,-0.0916
+B,mape,BA SOCO,2.8891,3.1872
+B,bias,BA SOCO,-0.3469,0.4148
+B,mape,BA SRP,4.2764,4.2869
+B,bias,BA SRP,-1.1972,0.6635
+B,mape,BA SWPP,2.9346,2.728
+B,bias,BA SWPP,-1.6261,0.0968
+B,mape,BA TVA,2.7248,3.0373
+B,bias,BA TVA,-1.3344,0.2622
+B,mape,17 BAs with an EIA forecast,3.2129,3.228
+B,mape,EIA forecast on the same 17 BAs,3.7544,3.7544

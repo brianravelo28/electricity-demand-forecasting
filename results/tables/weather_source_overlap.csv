@@ -1,0 +1,6 @@
+measure,value
+"matched temperature readings, Mesonet and ISD",344418.0
+"mean absolute difference, degrees C",0.02663256082241102
+readings differing by more than 0.5 C,119.0
+readings differing by more than 2 C,9.0
+rows in the pairs file,346033.0

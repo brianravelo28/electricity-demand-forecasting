@@ -1,0 +1,13 @@
+group,year,lightgbm_over_previous_day
+17 BAs,2021,0.6797
+17 BAs,2022,0.675
+17 BAs,2023,0.6891
+17 BAs,2024,0.7029
+17 BAs,2025,0.696
+17 BAs,2026,0.7295
+17 BAs without SRP and AZPS,2021,0.6673
+17 BAs without SRP and AZPS,2022,0.6675
+17 BAs without SRP and AZPS,2023,0.672
+17 BAs without SRP and AZPS,2024,0.6889
+17 BAs without SRP and AZPS,2025,0.6789
+17 BAs without SRP and AZPS,2026,0.7036
