@@ -1,4 +1,4 @@
-"""Walk-forward evaluation and scoring (see docs/PLANNING.md).
+"""Walk-forward evaluation and scoring (see docs/METHODOLOGY.md).
 
 Test blocks are calendar quarters from the start date. Each block is predicted by models fit
 only on origin dates at least two days before the block's first origin date.
@@ -13,7 +13,7 @@ from electricity.cleaning import clean_demand
 from electricity.features import DAY, build_rows, split_by_origin
 
 ROOT = Path(__file__).resolve().parent.parent
-DF_EXCLUDED = {"FPC", "PSCO", "LGEE"}  # EIA's forecast is far off for these (see docs/PLANNING.md)
+DF_EXCLUDED = {"FPC", "PSCO", "LGEE"}  # EIA's forecast is far off for these (see docs/METHODOLOGY.md)
 NAIVE = {"seasonal_naive": "base_seasonal_naive", "previous_day_naive": "lag_day", "same_day_avg": "base_same_day_avg"}
 KEEP = ["ba", "origin_date", "local_date", "stamp", "hour_local", "is_holiday", "day_before_holiday",
         "day_after_holiday", "y", "eia_df"]

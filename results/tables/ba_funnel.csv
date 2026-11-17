@@ -1,0 +1,10 @@
+stage,bas,codes
+Respondents on the API route,83,
+Regional aggregates,14,
+BAs,69,
+Generation-only BAs with no demand series,12,
+BAs with a demand series,57,
+Fail the rule,8,"BHBA, DOPD, GVL, NSB, PSEI, SEC, SWPW, TAL"
+Pass the rule,49,
+Smaller than the 20 largest passing BAs,29,
+Used,20,

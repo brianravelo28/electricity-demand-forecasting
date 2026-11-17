@@ -67,9 +67,9 @@
       <span id="lbl-sample">Balancing authorities scored</span>
       <select id="sample-select" aria-labelledby="lbl-sample">
         <option value="all">All 20</option>
-        <option value="eia">The 17 with an EIA forecast</option>
+        <option value="eia">The 17 with an operator forecast</option>
         <option value="all_no_srp">19, without SRP</option>
-        <option value="eia_no_srp">16 with an EIA forecast, without SRP</option>
+        <option value="eia_no_srp">16 with an operator forecast, without SRP</option>
       </select>
     </div>
   </section>
@@ -136,8 +136,8 @@
     </ul>
     <h3>What to keep in mind</h3>
     <ul>
-      <li>EIA’s forecast is whatever each BA reports as its own day-ahead forecast, with no common timing, so its information cannot be matched exactly to the model’s. It is missing or unreliable for three BAs, which is why some views score 17.</li>
-      <li>Error rises in 2025 and 2026 for every method, EIA’s forecast included. Much of it comes from SRP, and from EIA’s forecast getting worse in several BAs. LightGBM does not lose ground against the simple baselines once SRP and AZPS are set aside.</li>
+      <li>The operator forecast is the day-ahead forecast each BA reports to EIA, with no common timing, so its information cannot be matched exactly to the model’s. It is missing or unreliable for three BAs, which is why some views score 17.</li>
+      <li>Error rises in 2025 and 2026 for every method, the operator forecasts included. Much of it comes from SRP, and from the operator forecasts getting worse in several BAs. LightGBM does not lose ground against the simple baselines once SRP and AZPS are set aside.</li>
       <li>LightGBM runs a little low in BAs whose demand has grown past what it saw in training, such as ERCOT and AZPS.</li>
       <li>Values are the latest revised ones, so backtests are easier than a live system would face. History starts in 2019, so extreme events are few.</li>
       <li>The conclusions are about the model against baselines and against published forecasts. They say nothing about beating grid operators.</li>
@@ -146,7 +146,7 @@
 
   <footer>
     <h2>Sources and credits</h2>
-    <p class="note">Hourly demand and day-ahead forecast values: U.S. Energy Information Administration, Hourly Electric Grid Monitor (Form EIA-930). The day-ahead forecasts shown as “EIA forecast” are the values balancing authorities report, unaltered. The cleaned demand series, every other forecast, the error figures and the SHAP values are computed by the author from EIA data, and are not EIA’s.</p>
+    <p class="note">Hourly demand and day-ahead forecast values: U.S. Energy Information Administration, Hourly Electric Grid Monitor (Form EIA-930). The day-ahead forecasts shown as “operator forecast” are the values balancing authorities report to EIA, unaltered. The cleaned demand series, every other forecast, the error figures and the SHAP values are computed by the author from EIA data, and are not EIA’s.</p>
     <p class="note">Weather: NOAA National Centers for Environmental Information, Integrated Surface Database, and for dates from late August 2025 the Iowa Environmental Mesonet at Iowa State University.</p>
     <p class="note">This is an independent project. It is not affiliated with or endorsed by EIA, NOAA, Iowa State University, or any grid operator named. Each chart is drawn from the attached files, which were produced from saved data; nothing on this page calls a live service.</p>
   </footer>
@@ -361,7 +361,7 @@
     const val = (ba, m) => { const r = data.find((x) => x.ba === ba && x.model === m); return r ? r.mape : null; };
     const bas = [...new Set(data.map((r) => r.ba))].sort((a, b) => val(a, 'lightgbm') - val(b, 'lightgbm'));
     const rowH = 26, left = 58, right = 20;
-    const ms = ['lightgbm', 'previous_day_naive', 'eia_df'], names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'EIA forecast' };
+    const ms = ['lightgbm', 'previous_day_naive', 'eia_df'], names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'Operator forecast' };
     const lp = legendPlan(el, ms.map((m) => names[m]), 15, left);
     const top = 18 + lp.rows * 18, H = top + bas.length * rowH + 28;
     const { svg, W } = frame(el, H);
@@ -405,7 +405,7 @@
     const data = rows('regimes').filter((r) => r.sample === p.sample && r.variant === p.variant);
     const regs = [...new Set(data.map((r) => r.regime))];
     const ms = ['lightgbm', 'previous_day_naive', 'eia_df'].filter((m) => data.some((r) => r.model === m));
-    const names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'EIA forecast' };
+    const names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'Operator forecast' };
     const W0 = Math.max(300, el.clientWidth), stack = W0 < 560, bh = 15, gap = 4, grp = ms.length * (bh + gap) + (stack ? 30 : 14);
     const lp = legendPlan(el, ms.map((m) => names[m]), 16, stack ? 6 : 0);
     const top = 14 + lp.rows * 18;
@@ -451,7 +451,7 @@
       { key: 'actual', name: 'Actual demand', color: 'var(--color-fg)', w: 2.4 },
       { key: kA, name: 'LightGBM', color: dash.colors[0], w: 2 },
       { key: 'previous_day', name: 'Yesterday, same hour', color: 'var(--cds-chart-muted)', w: 1.6, dash: '5 4' },
-      { key: 'eia_forecast', name: 'EIA day-ahead forecast', color: dash.colors[1], w: 1.8 },
+      { key: 'eia_forecast', name: 'Operator forecast (reported to EIA)', color: dash.colors[1], w: 1.8 },
     ];
     const bottom = 28, left = 58, right = 14;
     const lp = legendPlan(el, series.map((s) => s.name), 23, left);
@@ -492,7 +492,7 @@
     const p = dash.params(), parse = d3.utcParse('%Y-%m');
     const data = rows('monthly').filter((r) => r.ba === p.ba && r.variant === p.variant).map((r) => ({ ...r, t: parse(r.month) }));
     const ms = ['lightgbm', 'previous_day_naive', 'eia_df'].filter((m) => data.some((r) => r.model === m));
-    const names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'EIA forecast' };
+    const names = { lightgbm: 'LightGBM', previous_day_naive: 'Yesterday', eia_df: 'Operator forecast' };
     const H = 260, top = 12, bottom = 28, left = 42;
     const { svg, W } = frame(el, H);
     const right = d3.max(ms, (m) => tw(svg, names[m], 12)) + 18;

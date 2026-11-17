@@ -1,4 +1,4 @@
-"""Demand outlier cleaning (see docs/PLANNING.md).
+"""Demand outlier cleaning (see docs/METHODOLOGY.md).
 
 EIA's hourly demand has impossible readings: values near 2^31, negative values, sudden
 spikes and drop-outs that last an hour or a few. Raw files stay untouched; the cleaned

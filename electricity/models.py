@@ -1,4 +1,4 @@
-"""Regression and LightGBM forecasts for the walk-forward evaluation (see docs/PLANNING.md).
+"""Regression and LightGBM forecasts for the walk-forward evaluation (see docs/METHODOLOGY.md).
 
 Both models work on demand divided by each BA's mean demand over the training window, so a
 fit never sees the test period. Predictions come back in MWh per hour.

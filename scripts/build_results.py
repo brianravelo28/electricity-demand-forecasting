@@ -160,6 +160,17 @@ def extra_models():
                     rows.append(dict(variant=v, sample=f"{name}_{int(y)}", model=m, bas=g["ba"].nunique(), hours=len(g),
                                      mape=mape(g, col), peak_hour_mape=np.nan, bias=np.nan))
     write("tables/extra_models.csv", pd.DataFrame(rows).round(4))
+    by_ba = []
+    for v in "AB":
+        base = preds(v)
+        ridge = pd.read_parquet(EVAL / f"extra_{v}_ridge.parquet")[["ba", "stamp", "pred_ridge"]]
+        nw = pd.read_parquet(EVAL / "extra_A_lightgbm_noweather.parquet")[["ba", "stamp", "pred_lightgbm_noweather"]]
+        c = evaluate.common_sample(base.merge(ridge, on=["ba", "stamp"], how="left").merge(nw, on=["ba", "stamp"], how="left")) \
+            .dropna(subset=["pred_ridge", "pred_lightgbm_noweather"])
+        for ba, g in c.groupby("ba"):
+            by_ba.append(dict(variant=v, ba=ba, hours=len(g), lightgbm=mape(g, "pred_lightgbm"), ridge=mape(g, "pred_ridge"),
+                              lightgbm_noweather=mape(g, "pred_lightgbm_noweather"), previous_day_naive=mape(g, "pred_previous_day_naive")))
+    write("tables/extra_models_by_ba.csv", pd.DataFrame(by_ba).round(4))
 
 
 def origin_sensitivity():
@@ -245,6 +256,25 @@ def error_rise():
     rows = [dict(month=k, model=m, hours=len(g), mape=mape(g, col)) for k, g in s.groupby("month") for m, col in models_.items()]
     write("tables/srp_monthly_error.csv", pd.DataFrame(rows).round(4))
     # LightGBM against the naive baseline, with and without SRP and AZPS
+    newest = a[a["local_date"] >= "2026-10-30"]
+    prior = a[(a["local_date"] >= "2026-10-02") & (a["local_date"] < "2026-10-30")]
+    full = evaluate.common_sample(preds("A"))
+    rows = []
+    for ba in BAS:
+        last = full[(full["ba"] == ba) & (full["local_date"] >= "2026-10-30")]
+        before = full[(full["ba"] == ba) & (full["local_date"] >= "2026-10-02") & (full["local_date"] < "2026-10-30")]
+        rows.append(dict(ba=ba, error_last_4_days=mape(last, "pred_lightgbm"), error_prior_4_weeks=mape(before, "pred_lightgbm"),
+                         ratio=mape(last, "pred_lightgbm") / mape(before, "pred_lightgbm")))
+    write("tables/newest_days.csv", pd.DataFrame(rows).round(4))
+    ex = full[(full["ba"] == "SRP") & (full["local_date"] >= "2026-04-28") & (full["local_date"] <= "2026-05-10")]
+    ex = ex.assign(date=ex["local_date"].dt.strftime("%Y-%m-%d"))
+    flows = pd.concat([raw("SRP", "D").rename("demand"), raw("SRP", "NG").rename("net_generation"), raw("SRP", "TI").rename("interchange")], axis=1, sort=True)
+    flows = flows.tz_convert("America/Phoenix")  # SRP's local day, as for the forecasts
+    flows = flows[(flows.index >= "2026-04-28") & (flows.index < "2026-05-11")].resample("D").mean()
+    daily = ex.groupby("date").agg(demand_actual=("y", "mean"), lightgbm_forecast=("pred_lightgbm", "mean"))
+    daily["operator_forecast"] = ex.dropna(subset=["eia_df"]).groupby("date")["eia_df"].mean()
+    flows.index = flows.index.strftime("%Y-%m-%d")
+    write("tables/srp_may_2026_daily.csv", daily.join(flows[["net_generation", "interchange"]]).reset_index().round(0))
     r = []
     for gname, g in list(groups.items())[:2]:
         by = g.groupby("year")
@@ -327,9 +357,23 @@ def selection_and_forecast_checks():
         rows.append(dict(ba=ba, has_data_from_2019_01_01=bool(d.index.min() <= idx[0]), hours=len(idx),
                          missing_or_null_pct=100 * s.isna().mean(), zero_or_negative_pct=100 * (s <= 0).mean(), mean_demand_mw=s[s > 0].mean()))
     t = pd.DataFrame(rows)
+    resp = pd.read_parquet(ROOT / "data" / "respondents.parquet")
+    t.insert(1, "name", t["ba"].map(dict(zip(resp["code"], resp["api_name"]))))  # EIA's name for the BA
     t["passes"] = t["has_data_from_2019_01_01"] & (t["missing_or_null_pct"] <= 2) & (t["zero_or_negative_pct"] <= 2)
     t["rank_among_passing_by_mean_demand"] = t["mean_demand_mw"].where(t["passes"]).rank(ascending=False)
     write("tables/ba_selection.csv", t.sort_values("mean_demand_mw", ascending=False).round(3))
+    with_demand = resp[(resp["kind"] == "ba") & (resp["generation_only"] != "Yes")]
+    passing = int(t["passes"].sum())
+    stages = [("Respondents on the API route", len(resp), ""),
+              ("Regional aggregates", int((resp["kind"] == "region").sum()), ""),
+              ("BAs", int((resp["kind"] == "ba").sum()), ""),
+              ("Generation-only BAs with no demand series", int((resp["generation_only"] == "Yes").sum()), ""),
+              ("BAs with a demand series", len(with_demand), ""),
+              ("Fail the rule", int((~t["passes"]).sum()), ", ".join(t.loc[~t["passes"], "ba"])),
+              ("Pass the rule", passing, ""),
+              ("Smaller than the 20 largest passing BAs", passing - len(BAS), ""),
+              ("Used", len(BAS), "")]
+    write("tables/ba_funnel.csv", pd.DataFrame(stages, columns=["stage", "bas", "codes"]))
     rows = []
     for ba in BAS:
         d, f = raw(ba, "D"), raw(ba, "DF")
@@ -349,8 +393,62 @@ def selection_and_forecast_checks():
             rem = d[bad]
             ok = f.notna() & (rem > 0)
             near = int((((rem[ok] - f[ok]).abs() / f[ok]) < 0.25).sum())
-        rows.append(dict(ba=ba, hours=len(d), removed_hours=int(bad.sum()), removed_pct=100 * bad.mean(), removed_within_25pct_of_eia_forecast=near))
+        in_uri = bad[(bad.index >= "2021-02-13") & (bad.index < "2021-02-20")].sum()
+        in_elliott = bad[(bad.index >= "2022-12-21") & (bad.index < "2022-12-28")].sum()
+        rows.append(dict(ba=ba, hours=len(d), removed_hours=int(bad.sum()), removed_pct=100 * bad.mean(),
+                         removed_within_25pct_of_eia_forecast=near, removed_during_uri=int(in_uri), removed_during_elliott=int(in_elliott),
+                         first_hour=d.index.min().strftime("%Y-%m-%d %H:%M"), last_hour=d.index.max().strftime("%Y-%m-%d %H:%M")))
     write("tables/cleaning_flags.csv", pd.DataFrame(rows).round(4))
+    rows = []
+    for v in "AB":
+        c = evaluate.common_sample(preds(v))
+        rows.append(dict(variant=v, scored_hours=len(c), previous_day_error_over_100pct=int((ape(c, "pred_previous_day_naive") > 100).sum())))
+    write("tables/residual_outliers.csv", pd.DataFrame(rows))
+
+
+def hours_funnel():
+    """Test-period target hours from all of them to the hours each comparison scores."""
+    rows = []
+    for v in "AB":
+        p = preds(v)
+        have_y = p["y"].notna()
+        needed = [f"pred_{m}" for m in M5]
+        scored = have_y & p[needed].notna().all(axis=1)
+        steps = [
+            ("Target hours in the test period (2021-01-01 to 2026-11-01)", len(p)),
+            ("Actual demand missing (a gap, or set to missing by the cleaning rule)", int((~have_y).sum())),
+            ("Actual demand present but a forecast input missing", int((have_y & ~scored).sum())),
+            ("Scored: actual demand and all five forecasts (20 BAs)", int(scored.sum())),
+            ("Of those, with a day-ahead forecast reported to EIA (17 BAs)", int((scored & p["eia_df"].notna()).sum())),
+            ("Of those, without one (FPC, PSCO, LGEE)", int((scored & p["eia_df"].isna()).sum())),
+        ]
+        rows += [dict(variant=v, stage=s, hours=n) for s, n in steps]
+        for m in M5:
+            rows.append(dict(variant=v, stage=f"  of the missing-input hours, {m} is missing",
+                             hours=int((have_y & p[f"pred_{m}"].isna()).sum())))
+    write("tables/funnel.csv", pd.DataFrame(rows))
+
+
+def data_manifest():
+    """SHA-256 of every raw input the evaluation reads, so the data version behind the figures is identifiable."""
+    import hashlib
+
+    def digest(path):
+        h = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for block in iter(lambda: fh.read(1 << 20), b""):
+                h.update(block)
+        return h.hexdigest()
+
+    paths = sorted(RAW.glob("*.parquet")) + [ROOT / "data" / n for n in ("weather_hourly.parquet", "respondents.parquet", "weather_stations.parquet")]
+    keep = {p.name.split("_")[0] for p in RAW.glob("*_D.parquet")} & set(BAS)
+    rows = []
+    for p in paths:
+        if p.parent == RAW and p.name.split("_")[0] not in keep:
+            continue  # raw files for BAs outside the 20 selected are not read by the evaluation
+        frame = pd.read_parquet(p)
+        rows.append(dict(file=p.relative_to(ROOT / "data").as_posix(), rows=len(frame), sha256=digest(p)))
+    write("tables/data_manifest.csv", pd.DataFrame(rows))
 
 
 def shap_table():
@@ -385,6 +483,9 @@ def weather_checks():
     if cov.exists():
         write("tables/weather_coverage.csv", pd.read_csv(cov))
     wx = pd.read_parquet(ROOT / "data" / "weather_hourly.parquet")
+    cover = wx.groupby("ba").agg(hours=("temp_c", "size"), hours_with_temperature=("temp_c", "count"))
+    cover["share_with_temperature_pct"] = 100 * cover["hours_with_temperature"] / cover["hours"]
+    write("tables/weather_coverage_by_ba.csv", cover.reset_index().round(3))
     rows = []
     for ba in ("ERCO", "PJM"):
         d = raw(ba, "D")
@@ -396,8 +497,17 @@ def weather_checks():
     write("tables/demand_temperature_correlation.csv", pd.DataFrame(rows).round(4))
 
 
+STEPS = (headline_tables, daily_errors, extra_models, origin_sensitivity, scaling_experiment, cleaning_thresholds,
+         error_rise, srp_flows, load_growth, selection_and_forecast_checks, hours_funnel, data_manifest, shap_table,
+         weather_checks)
+
 if __name__ == "__main__":
-    for step in (headline_tables, daily_errors, extra_models, origin_sensitivity, scaling_experiment, cleaning_thresholds,
-                 error_rise, srp_flows, load_growth, selection_and_forecast_checks, shap_table, weather_checks):
+    only = set(sys.argv[1:])  # optional step names, e.g. `python scripts/build_results.py hours_funnel`
+    unknown = only - {s.__name__ for s in STEPS}
+    if unknown:
+        raise SystemExit(f"unknown step(s): {sorted(unknown)}; choose from {[s.__name__ for s in STEPS]}")
+    for step in STEPS:
+        if only and step.__name__ not in only:
+            continue
         print(f"--- {step.__name__}", flush=True)
         step()

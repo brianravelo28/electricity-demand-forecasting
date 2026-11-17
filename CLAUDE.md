@@ -10,11 +10,13 @@ python scripts/run_evaluation.py --variant A    # the walk-forward (needs data/,
 python scripts/build_results.py                 # rewrites results/
 python scripts/bootstrap_intervals.py           # rewrites results/bootstrap.csv
 python scripts/build_dashboard_data.py && python scripts/build_site.py   # rebuilds site/
+python scripts/render_doc_tables.py       # rewrites the tables in README.md and docs/METHODOLOGY.md from results/
 ```
 
 ## Rules
 
 - `data/` is git-ignored. Anything the docs quote lives in `results/`. Change a figure by rerunning the pipeline, then `build_results.py`, then update the text from the files; do not type a figure a file computes.
+- Tables between `<!-- table:NAME -->` and `<!-- /table -->` in the docs are generated; never edit one by hand. Rerun `render_doc_tables.py`. A figure typed into the prose has a test in `tests/test_docs.py`; add one when adding a figure.
 - Pipeline code (`electricity/`, `scripts/`) changes go in their own commits, separate from documentation. Do not edit working pipeline code to fix a documentation issue.
 - A forecast uses no input after 08:00 (demand) or 09:00 (weather) local time on the day it is made. The leakage tests in `tests/test_features.py` guard this; keep them passing.
 - Test-mutation checks: copy a file to a backup before breaking it and restore from the backup. Never undo with `git checkout -- <file>` when the file has uncommitted real edits.
