@@ -383,7 +383,7 @@ python scripts/render_doc_tables.py             # rewrite the tables in the docs
 
 **Data version.** [data_manifest.csv](../results/tables/data_manifest.csv) lists the SHA-256 of every raw input.
 
-**Software.** Python 3.14 is the development version; CI runs the tests on 3.12, 3.13 and 3.14. Packages are pinned in `requirements.txt`. The model results come from LightGBM 4.7.0 and pandas 3.1.0.
+**Software.** Python 3.14 is the development version; CI runs the tests on 3.12, 3.13 and 3.14. Packages are pinned in `requirements.txt`. The model results come from LightGBM 4.7.0 and pandas 3.1.0. With the pinned pandas 3.1.1 the results tables rebuild unchanged, and a fresh variant A evaluation gives the same overall, by-BA and by-regime tables.
 
 **Tests.** `python -m pytest` runs offline in under a minute. They cover the leakage rules, the cleaning rule, the scoring and walk-forward code, the models (including determinism), the fetchers against mocked replies, and the committed results: the daily error sums recompute the headline tables, the dashboard data equals the tables, and the figures in these documents equal the files. They do not cover page layout or the live deployment.
 
