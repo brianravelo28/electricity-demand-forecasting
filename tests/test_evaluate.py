@@ -138,6 +138,19 @@ def test_walk_forward_output_has_every_model_and_matching_baselines(synthetic_ro
     assert evaluate.score(evaluate.common_sample(out), ["lightgbm"]).loc["lightgbm", "mape_%"] < 10
 
 
+def test_the_extra_models_cover_the_same_block_and_add_only_their_columns(synthetic_rows):
+    main = evaluate.walk_forward(synthetic_rows, ["X"], "A", start="2021-01-01", rounds=5, max_blocks=1, log=lambda s: None)
+    extra = evaluate.walk_forward_extra(synthetic_rows, ["X"], "A", start="2021-01-01", rounds=60, log=lambda s: None,
+                                        which=("ridge", "lightgbm_noweather"))
+    assert set(extra.columns) == {"ba", "stamp", "y", "pred_ridge", "pred_lightgbm_noweather"}
+    block = extra[extra["stamp"].isin(main["stamp"])]
+    assert len(block) == len(main) and np.allclose(block["y"].to_numpy(), main.set_index("stamp").loc[block["stamp"], "y"].to_numpy())
+    only = evaluate.walk_forward_extra(synthetic_rows, ["X"], "A", start="2021-01-01", log=lambda s: None, which=("ridge",))
+    assert "pred_lightgbm_noweather" not in only and "pred_ridge" in only
+    done = block.dropna()
+    assert (100 * (done["pred_ridge"] - done["y"]).abs() / done["y"]).mean() < 10
+
+
 def test_each_day_marks_its_peak_hour(synthetic_rows):
     out = evaluate.walk_forward(synthetic_rows, ["X"], "A", start="2021-01-01", rounds=3, max_blocks=1, log=lambda s: None)
     per_day = out.groupby(["ba", "local_date"])["is_peak"].sum()

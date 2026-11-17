@@ -62,6 +62,30 @@ def walk_forward(rows, bas, variant, start="2021-01-01", rounds=400, max_blocks=
     return pd.concat(out, ignore_index=True)
 
 
+def walk_forward_extra(rows, bas, variant, start="2021-01-01", rounds=400, log=print,
+                       which=("ridge", "lightgbm_noweather")):
+    """Forecasts from the extra comparison models over the same quarterly blocks as walk_forward.
+
+    ridge: a ridge regression on the same inputs as LightGBM (weather per `variant`).
+    lightgbm_noweather: LightGBM with no weather inputs at all; it does not depend on `variant`.
+    Returns one row per BA and stamp with the target and one forecast column per model.
+    """
+    last = rows["origin_date"].max()
+    starts = pd.date_range(start, last, freq="QS")
+    out = []
+    for i, s in enumerate(starts):
+        end = starts[i + 1] - DAY if i + 1 < len(starts) else last
+        train, test = split_by_origin(rows, s, end)
+        part = test[["ba", "stamp", "y"]].copy()
+        if "ridge" in which:
+            part["pred_ridge"] = models.fit_predict_ridge(train, test, variant, bas)
+        if "lightgbm_noweather" in which:
+            part["pred_lightgbm_noweather"], _ = models.fit_predict_lgbm(train, test, "N", bas, rounds)
+        out.append(part)
+        log(f"block {s.date()} to {end.date()}: train {len(train):,} rows, test {len(test):,} rows")
+    return pd.concat(out, ignore_index=True)
+
+
 def common_sample(preds, with_df=False):
     cols = ["y"] + [f"pred_{m}" for m in MODEL_ORDER if m != "eia_df" or with_df]
     return preds.dropna(subset=cols)
