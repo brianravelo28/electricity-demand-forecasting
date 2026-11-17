@@ -27,9 +27,9 @@ MODELS = ["seasonal_naive", "previous_day_naive", "same_day_avg", "regression", 
 NO_EIA = [m for m in MODELS if m != "eia_df"]
 SAMPLES = {
     "all": ("All 20 BAs", None),
-    "eia": ("17 BAs that have an EIA forecast", None),
+    "eia": ("17 BAs that have an operator forecast", None),
     "all_no_srp": ("19 BAs, without SRP", "SRP"),
-    "eia_no_srp": ("16 BAs with an EIA forecast, without SRP", "SRP"),
+    "eia_no_srp": ("16 BAs with an operator forecast, without SRP", "SRP"),
 }
 WINDOWS = {
     "uri": ("Winter Storm Uri", "2021-02-13", "2021-02-19"),
@@ -199,7 +199,7 @@ def main():
         ("same_day_avg", "Average of the last four same weekdays", "4-week average"),
         ("regression", "Regression on calendar and temperature", "Regression"),
         ("lightgbm", "LightGBM", "LightGBM"),
-        ("eia_df", "EIA day-ahead forecast", "EIA forecast")]]
+        ("eia_df", "Operator forecast (reported to EIA)", "Operator forecast")]]
 
     files = dict(overall=overall, by_year=by_year, regimes=regimes, by_ba=by_ba, monthly=monthly, hourly=hourly,
                  shap=shap, windows=windows, bas=bas, samples=samples, models=models)

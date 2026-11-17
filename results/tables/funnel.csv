@@ -1,0 +1,23 @@
+variant,stage,hours
+A,Target hours in the test period (2021-01-01 to 2026-11-01),1022880
+A,"Actual demand missing (a gap, or set to missing by the cleaning rule)",1532
+A,Actual demand present but a forecast input missing,6103
+A,Scored: actual demand and all five forecasts (20 BAs),1015245
+A,"Of those, with a day-ahead forecast reported to EIA (17 BAs)",856669
+A,"Of those, without one (FPC, PSCO, LGEE)",158576
+A,"  of the missing-input hours, seasonal_naive is missing",1200
+A,"  of the missing-input hours, previous_day_naive is missing",926
+A,"  of the missing-input hours, same_day_avg is missing",4588
+A,"  of the missing-input hours, regression is missing",695
+A,"  of the missing-input hours, lightgbm is missing",0
+B,Target hours in the test period (2021-01-01 to 2026-11-01),1022880
+B,"Actual demand missing (a gap, or set to missing by the cleaning rule)",1532
+B,Actual demand present but a forecast input missing,6322
+B,Scored: actual demand and all five forecasts (20 BAs),1015026
+B,"Of those, with a day-ahead forecast reported to EIA (17 BAs)",856588
+B,"Of those, without one (FPC, PSCO, LGEE)",158438
+B,"  of the missing-input hours, seasonal_naive is missing",1200
+B,"  of the missing-input hours, previous_day_naive is missing",926
+B,"  of the missing-input hours, same_day_avg is missing",4588
+B,"  of the missing-input hours, regression is missing",920
+B,"  of the missing-input hours, lightgbm is missing",0
