@@ -93,7 +93,7 @@ The extra comparison models, SHAP, the sensitivity runs and the intervals have t
 
 ## Tests
 
-The tests check that forecasts use no information from after the forecast time, the cleaning rule, the scoring and walk-forward code, the models (a retrain with the same seed gives identical forecasts), the data fetchers against mocked replies, and the committed results: the daily error sums recompute the headline tables, the dashboard data equals the tables, and the figures in these documents equal the files. They run offline in under a minute and do not cover page layout or the live deployment. CI runs them on Python 3.12, 3.13 and 3.14.
+The tests check that forecasts use no information from after the forecast time, the cleaning rule, the scoring and walk-forward code, the models (on a small table, a retrain with the same seed gives identical forecasts), the data fetchers against mocked replies, and the committed results: the daily error sums recompute the headline tables, the dashboard data equals the tables, and the figures in these documents equal the files. They run offline in under a minute and do not cover page layout or the live deployment. CI runs them on Python 3.12, 3.13 and 3.14.
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt

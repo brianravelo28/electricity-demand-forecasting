@@ -146,7 +146,7 @@ The three BAs without a usable operator forecast (FPC, PSCO, LGEE) are scored in
 | LightGBM without weather | LightGBM with no weather inputs at all | Shows what weather adds. It does not depend on the variant |
 | Operator forecast | The day-ahead forecast each BA reports to EIA | A benchmark for the 17 BAs that report a usable one |
 
-LightGBM is one global model across BAs. Demand inputs and the target are divided by each BA's mean demand over the training window, then scaled back, so a fit never sees the test period. The hyperparameters are set by judgment, not tuned: learning rate 0.05 with 400 rounds, 63 leaves, at least 200 rows per leaf, a 0.8 share of features and of rows per round, and an L2 penalty of 1.0. They are common defaults for a table of about a million rows (`LGBM_PARAMS` in `electricity/models.py`) and are the same in every block. The seed is fixed; four retrains give identical forecasts on one machine (`tests/test_models.py`).
+LightGBM is one global model across BAs. Demand inputs and the target are divided by each BA's mean demand over the training window, then scaled back, so a fit never sees the test period. The hyperparameters are set by judgment, not tuned: learning rate 0.05 with 400 rounds, 63 leaves, at least 200 rows per leaf, a 0.8 share of features and of rows per round, and an L2 penalty of 1.0. They are common defaults for a table of about a million rows (`LGBM_PARAMS` in `electricity/models.py`) and are the same in every block. The seed is fixed. On the small table in `tests/test_models.py`, four retrains give identical forecasts.
 
 ## Validation
 
@@ -379,7 +379,7 @@ python scripts/build_results.py && python scripts/bootstrap_intervals.py
 python scripts/render_doc_tables.py             # rewrite the tables in the docs
 ```
 
-**Determinism.** The same inputs and seed give identical forecasts and a different seed gives different forecasts (`tests/test_models.py`). The evaluation takes about 17 minutes for variant A and 27 for variant B on a desktop machine.
+**Determinism.** On the small table in `tests/test_models.py`, the same inputs and seed give identical forecasts and a different seed gives different forecasts. LightGBM fits on all threads (`num_threads: 0`), so two full evaluations can differ in the last digits of some LightGBM forecasts (a rounding difference, far below any figure reported here), and the overall, by-BA and by-regime tables are the same in both runs. The evaluation takes about 17 minutes for variant A and 27 for variant B on a desktop machine.
 
 **Data version.** [data_manifest.csv](../results/tables/data_manifest.csv) lists the SHA-256 of every raw input.
 
