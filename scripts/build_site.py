@@ -26,11 +26,11 @@ def swap(text, old, new):
 def main():
     shim = (ROOT / "dashboard" / "preview.html").read_text(encoding="utf-8")
     shim = re.sub(r"<!--.*?-->\s*", "", shim, count=1, flags=re.S)  # the "local preview" instructions
-    shim = swap(shim, "<title>Electricity demand forecasts (local preview)</title>", "<title>Electricity demand forecasts</title>")
+    shim = swap(shim, "<title>Electricity demand forecasts (local preview)</title>", "<title>Electricity Demand Forecasting</title>")
     shim = swap(shim, '<meta name="viewport" content="width=device-width, initial-scale=1">',
                 '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
                 '<meta name="description" content="Next-day hourly electricity demand forecasts for 20 US balancing authorities: '
-                'LightGBM against simple baselines and EIA\'s own forecasts.">')
+                'LightGBM against simple baselines and the day-ahead forecasts operators report to EIA.">')
     shim = swap(shim, "fetch('../data/dashboard/' + id + '.json')", "fetch('results/' + id + '.json')")
     shim = swap(shim, "fetch('index.html')", "fetch('page.html')")
 
