@@ -1,4 +1,4 @@
-"""Target and feature construction for next-day hourly demand (see docs/PLANNING.md).
+"""Target and feature construction for next-day hourly demand (see docs/METHODOLOGY.md).
 
 Series sit on a regular UTC hour-ending grid: the value stamped T covers T minus 1 hour to T.
 One row is one origin date d (local) and one target hour. The forecast is made at 10:00 local
